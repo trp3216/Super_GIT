@@ -11,7 +11,11 @@
 
 ## หลักการทำงาน
 
-1. อ่าน shapefile ของลำน้ำ ถ้าเป็นเส้นกลางลำน้ำให้กำหนด `buffer_m` เพื่อขยายเป็นพื้นที่ และตัดตามเขตจังหวัดได้ด้วย `clip`
+1. อ่าน shapefile ของลำน้ำ แล้วสร้างเป็นพื้นที่ผิวน้ำ
+   - เส้นตลิ่ง 2 ฝั่ง (เช่น `Main_River.shp`): ใช้ `banks_close_m` เติมพื้นที่ระหว่างตลิ่ง และ `max_bank_distance_m` ตัดผืนดินที่อยู่ไกลตลิ่ง
+   - เส้นกลางลำน้ำ: ใช้ `buffer_m`
+   - polygon ผิวน้ำ: ใช้ได้ทันที
+   - ตัดตามเขตจังหวัดด้วย `clip` (ใช้ขอบเขตจังหวัดจาก geoBoundaries / OpenStreetMap ใน `data/boundaries/`)
 2. ค้นหาภาพ Sentinel-2 L2A จาก [Microsoft Planetary Computer](https://planetarycomputer.microsoft.com/) ซึ่งใช้ได้ฟรีโดยไม่ต้องสมัครบัญชี
 3. อ่านเฉพาะพิกเซลในลำน้ำ แล้วตัดเมฆและเงาเมฆออกด้วยแบนด์ SCL
 4. จำแนกพิกเซล
@@ -31,26 +35,27 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 ```
 
-## เตรียม shapefile
+## ข้อมูลลำน้ำ
 
-วางไฟล์ไว้ตาม path ใน `config.yaml` ต้องมีไฟล์ `.shp .shx .dbf .prj` ครบ
+- `แม่น้ำ คลอง/Main_River.shp`: เส้นตลิ่งแม่น้ำ ชื่อภาษาไทยเข้ารหัส TIS-620 (`encoding: cp874`)
+  - ท่าจีนช่วงกลางในสุพรรณบุรีมีชื่อในไฟล์ว่า "แม่น้ำสุพรรณ" จึงเลือกรวมกับ "แม่น้ำท่าจีน"
+- `แม่น้ำ คลอง/Main_canal.shp`, `Second_canal.shp`: คลองสายหลักและสายรอง สำหรับเพิ่มภายหลัง
+- `data/boundaries/geoBoundaries-THA-ADM1.geojson`: ขอบเขตจังหวัด ([geoBoundaries](https://www.geoboundaries.org), ODbL)
 
-```
-data/
-  rivers/
-    tha_chin.shp     # แม่น้ำท่าจีน
-    noi.shp          # แม่น้ำน้อย
-  boundaries/
-    provinces.shp    # เขตจังหวัด (ใช้ตัดท่าจีนเป็นชัยนาท/สุพรรณบุรี)
-```
+### ตรวจและแก้ขอบเขตลำน้ำ (แนะนำก่อนใช้ตัวเลขจริง)
 
-ถ้าชื่อ field ในไฟล์เขตจังหวัดไม่ใช่ `PROV_NAMT` ให้แก้ `query` ใน `config.yaml` ให้ตรงกับไฟล์
+ทุกครั้งที่รัน ระบบจะบันทึกขอบเขตที่ใช้คำนวณไว้ที่ `outputs/river_polygons.gpkg` ซึ่งตรวจได้ด้วยวิธีนี้
+
+1. เปิดไฟล์ใน QGIS ซ้อนกับภาพดาวเทียม
+2. แก้ส่วนที่เป็น **เกาะกลางน้ำ ผืนดินตรงจุดแยกลำน้ำ หรือโค้งแคบ** ที่ถูกเติมเข้ามา (ตัวกรองอัตโนมัติตัดจุดแบบนี้ออกได้ไม่หมด)
+3. บันทึกเป็นไฟล์ใหม่ เช่น `data/rivers/tha_chin_edited.gpkg`
+4. แก้ `config.yaml` ให้ชี้ไปที่ไฟล์ใหม่ แล้วลบ `banks_close_m` และ `max_bank_distance_m` ออก เพราะไฟล์ใหม่เป็น polygon อยู่แล้ว
 
 ## วิธีใช้
 
 ```bash
-# ทุกลำน้ำ ช่วง ม.ค.–มี.ค. 2026
-.venv/bin/python -m hyacinth --start 2026-01-01 --end 2026-03-31 --plot
+# ทุกลำน้ำ ช่วง ม.ค.–มี.ค. 2026 พร้อมรายงานหน้าเว็บ
+.venv/bin/python -m hyacinth --start 2026-01-01 --end 2026-03-31 --html
 
 # เฉพาะแม่น้ำน้อย พร้อมบันทึกแผนที่จำแนกเป็น GeoTIFF เพื่อเปิดดูใน QGIS
 .venv/bin/python -m hyacinth --start 2026-09-01 --end 2026-09-30 --river noi --save-rasters
@@ -59,19 +64,26 @@ data/
 ผลลัพธ์จะอยู่ในโฟลเดอร์ `outputs/`
 - `hyacinth_<start>_<end>.csv`: ตารางผลรายวันรายลำน้ำ (พื้นที่ ตร.ม., % ผักตบ, ปริมาตร ลบ.ม., น้ำหนักตัน)
 - `hyacinth_<start>_<end>.png`: กราฟพื้นที่ผักตบ (ไร่) ตามเวลา เมื่อใส่ `--plot`
-- `rasters/<river>/<date>_<tile>.tif`: แผนที่จำแนก เมื่อใส่ `--save-rasters` ค่าพิกเซลคือ 1 = เมฆ, 2 = น้ำ, 3 = ผักตบ, 4 = อื่นๆ
+- `hyacinth_<start>_<end>.html`: รายงานหน้าเว็บ (แผนที่ผลจำแนกบนภาพดาวเทียม กราฟ ตาราง) เมื่อใส่ `--html` เป็นไฟล์เดียว เปิดในเบราว์เซอร์หรือส่งต่อได้
+- `river_polygons.gpkg`: ขอบเขตลำน้ำที่ใช้คำนวณ
+- `rasters/<river>/<date>_<tile>_<n>.tif`: แผนที่จำแนก เมื่อใส่ `--save-rasters` ค่าพิกเซลคือ 1 = เมฆ, 2 = น้ำ, 3 = ผักตบ, 4 = อื่นๆ
 
-ระบบจะข้ามวันที่มองเห็นลำน้ำได้น้อยกว่า `min_valid_fraction` เช่นวันที่มีเมฆมาก
+ระบบจะข้ามวันที่มองเห็นลำน้ำได้น้อยกว่า `min_valid_fraction` เช่นวันที่มีเมฆมาก หรือวันที่ภาพครอบคลุมลำน้ำไม่ครบ
+
+ใช้เวลาประมาณ 1 นาทีต่อวันที่ถ่ายภาพต่อลำน้ำ (Sentinel-2 ถ่ายซ้ำทุก 2–5 วัน)
 
 ## เพิ่มคลองใหม่
 
 เพิ่มบล็อกนี้ใน `rivers:` ของ `config.yaml`
 
 ```yaml
-  - name: khlong_makham_thao
+  - name: makham_thao_u_thong
     label: คลองมะขามเฒ่า-อู่ทอง
-    shapefile: data/rivers/khlong_makham_thao.shp
-    buffer_m: 15        # ถ้าไฟล์เป็นเส้นกลางคลอง กว้างประมาณ 30 ม.
+    shapefile: แม่น้ำ คลอง/Main_River.shp
+    encoding: cp874
+    query: "NAME == 'คลองมะขามเฒ่าอู่ทอง'"
+    banks_close_m: 100
+    max_bank_distance_m: 30
 ```
 
 > คลองที่กว้างน้อยกว่าประมาณ 20–30 ม. (2–3 พิกเซล) จะมีพิกเซลปนกับตลิ่งมาก ทำให้ผลคลาดเคลื่อนสูง

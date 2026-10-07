@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ผักตบชวาในลำน้ำ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f4f6f3; --surface: #ffffff; --text: #17201b; --muted: #5d6b63; --border: #dde3de;
+  --accent: #2f8a3a; --accent-soft: #e5f3e6; --water: #2882ff; --hyacinth: #78ff00; --cloud: #969696;
+  --series-1: #2f8a3a; --series-2: #1f6fd1; --series-3: #c2571a; --series-4: #8a3fb8; --series-5: #b0901a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1411; --surface: #171e1a; --text: #e6ece8; --muted: #95a39b; --border: #2a342e;
+    --accent: #6cc574; --accent-soft: #1d2d20;
+    --series-1: #6cc574; --series-2: #5aa2ff; --series-3: #f08a4b; --series-4: #c084fc; --series-5: #e0c04a;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1411; --surface: #171e1a; --text: #e6ece8; --muted: #95a39b; --border: #2a342e;
+  --accent: #6cc574; --accent-soft: #1d2d20;
+  --series-1: #6cc574; --series-2: #5aa2ff; --series-3: #f08a4b; --series-4: #c084fc; --series-5: #e0c04a;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font-family: "IBM Plex Sans Thai", system-ui, sans-serif; line-height: 1.5; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 24px 16px 48px; }
+header h1 { font-size: 1.6rem; margin: 0 0 4px; font-weight: 700; }
+header p { margin: 0; color: var(--muted); font-size: .95rem; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0 16px; align-items: end; }
+.controls label { display: flex; flex-direction: column; gap: 4px; font-size: .8rem; color: var(--muted); font-weight: 500; }
+select { font: inherit; font-size: .95rem; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); min-width: 200px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.card .k { font-size: .8rem; color: var(--muted); }
+.card .v { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.card .v small { font-size: .85rem; font-weight: 500; color: var(--muted); margin-left: 4px; }
+.card.hl { background: var(--accent-soft); border-color: transparent; }
+.panel { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
+.panel h2 { font-size: 1rem; margin: 0; padding: 12px 16px; border-bottom: 1px solid var(--border); font-weight: 600; }
+#map { height: 560px; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; padding: 10px 16px; font-size: .85rem; color: var(--muted); border-top: 1px solid var(--border); }
+.legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
+.chart-box { padding: 12px 16px; height: 320px; }
+.table-scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .875rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 8px 12px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+th { color: var(--muted); font-weight: 500; position: sticky; top: 0; background: var(--surface); }
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--accent-soft); }
+tbody tr.active { background: var(--accent-soft); font-weight: 600; }
+.note { font-size: .8rem; color: var(--muted); margin-top: 8px; }
+@media (max-width: 640px) { #map { height: 420px; } select { min-width: 0; width: 100%; } .controls label { flex: 1 1 100%; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="title">ผักตบชวาในลำน้ำ</h1>
+    <p>วิเคราะห์จากภาพดาวเทียม Sentinel-2 (ความละเอียด 10 ม.) — เลือกลำน้ำและวันที่เพื่อดูแผนที่</p>
+  </header>
+
+  <div class="controls">
+    <label>ลำน้ำ<select id="river"></select></label>
+    <label>วันที่ถ่ายภาพ<select id="date"></select></label>
+  </div>
+
+  <div class="cards" id="cards"></div>
+
+  <section class="panel">
+    <h2>แผนที่</h2>
+    <div id="map"></div>
+    <div class="legend">
+      <span style="--c: var(--hyacinth)">ผักตบชวา</span>
+      <span style="--c: var(--water)">น้ำเปิด</span>
+      <span style="--c: var(--cloud)">เมฆ / มองไม่เห็น</span>
+      <span style="--c: transparent; outline: 2px solid #ffd400; outline-offset: -2px">ขอบเขตลำน้ำ</span>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>พื้นที่ผักตบชวาตามเวลา (ไร่)</h2>
+    <div class="chart-box"><canvas id="chart"></canvas></div>
+  </section>
+
+  <section class="panel">
+    <h2>ตารางผลทั้งหมด</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr>
+          <th>วันที่</th><th>ลำน้ำ</th><th>ผักตบ (ไร่)</th><th>% ของผิวน้ำที่เห็น</th>
+          <th>ปริมาตร (ลบ.ม.)</th><th>น้ำหนักสด (ตัน)</th><th>มองเห็น (%)</th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </section>
+  <p class="note">ปริมาตรและน้ำหนักคำนวณจากค่าความหนาแพผักตบและน้ำหนักต่อตารางเมตรใน config.yaml ซึ่งควรปรับเทียบกับข้อมูลภาคสนาม · 1 ไร่ = 1,600 ตร.ม.</p>
+</div>
+
+<script>
+const DATA = /*__DATA__*/null;
+const RAI = 1600;
+const fmt = (n, d = 0) => Number(n).toLocaleString("th-TH", { minimumFractionDigits: d, maximumFractionDigits: d });
+const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+document.getElementById("title").textContent = DATA.title;
+const riverSel = document.getElementById("river");
+const dateSel = document.getElementById("date");
+const labelOf = Object.fromEntries(DATA.rivers.map((r) => [r.name, r.label]));
+
+DATA.rivers.forEach((r) => riverSel.add(new Option(r.label, r.name)));
+
+// แผนที่
+const map = L.map("map", { preferCanvas: true });
+const satellite = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+  maxZoom: 19, attribution: "Imagery © Esri",
+}).addTo(map);
+const osm = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+  maxZoom: 19, attribution: "© OpenStreetMap",
+});
+const outlines = {};
+DATA.rivers.forEach((r) => {
+  outlines[r.name] = L.geoJSON(r.geojson, { style: { color: "#ffd400", weight: 1.5, fill: false } }).addTo(map);
+});
+const overlayGroup = L.layerGroup().addTo(map);
+L.control.layers({ "ภาพดาวเทียม": satellite, "แผนที่ถนน": osm }, { "ผลจำแนก": overlayGroup }).addTo(map);
+
+function rowsOf(river) { return DATA.rows.filter((r) => r.river === river); }
+function current() { return DATA.rows.find((r) => r.river === riverSel.value && r.date === dateSel.value); }
+
+function fillDates(keep) {
+  const prev = keep ? dateSel.value : null;
+  dateSel.innerHTML = "";
+  rowsOf(riverSel.value).forEach((r) => dateSel.add(new Option(r.date, r.date)));
+  if (prev && [...dateSel.options].some((o) => o.value === prev)) dateSel.value = prev;
+  else dateSel.selectedIndex = dateSel.options.length - 1;
+}
+
+function renderCards(r) {
+  const cards = [
+    ["พื้นที่ผักตบชวา", fmt(r.hyacinth_m2 / RAI, 1), "ไร่", true],
+    ["สัดส่วนของผิวน้ำที่มองเห็น", fmt(r.hyacinth_pct, 1), "%"],
+    ["ปริมาตรโดยประมาณ", fmt(r.volume_m3), "ลบ.ม."],
+    ["น้ำหนักสดโดยประมาณ", fmt(r.biomass_t), "ตัน"],
+    ["มองเห็นลำน้ำ", fmt(r.valid_pct), "%"],
+  ];
+  document.getElementById("cards").innerHTML = cards
+    .map(([k, v, u, hl]) => `<div class="card${hl ? " hl" : ""}"><div class="k">${k}</div><div class="v">${v}<small>${u}</small></div></div>`)
+    .join("");
+}
+
+function renderMap(fit) {
+  overlayGroup.clearLayers();
+  (DATA.overlays[`${riverSel.value}|${dateSel.value}`] || []).forEach((o) => {
+    L.imageOverlay(o.png, o.bounds, { opacity: 1, className: "pixelated" }).addTo(overlayGroup);
+  });
+  Object.entries(outlines).forEach(([name, layer]) => layer.setStyle({ weight: name === riverSel.value ? 2 : 1, opacity: name === riverSel.value ? 1 : 0.4 }));
+  if (fit) map.fitBounds(outlines[riverSel.value].getBounds(), { padding: [20, 20] });
+}
+
+function renderTable() {
+  const r0 = current();
+  document.getElementById("rows").innerHTML = DATA.rows
+    .map((r) => `<tr data-river="${r.river}" data-date="${r.date}" class="${r === r0 ? "active" : ""}">
+      <td>${r.date}</td><td>${labelOf[r.river]}</td><td>${fmt(r.hyacinth_m2 / RAI, 1)}</td><td>${fmt(r.hyacinth_pct, 1)}</td>
+      <td>${fmt(r.volume_m3)}</td><td>${fmt(r.biomass_t)}</td><td>${fmt(r.valid_pct)}</td></tr>`)
+    .join("");
+}
+
+function render(fit) {
+  const r = current();
+  if (r) renderCards(r);
+  renderMap(fit);
+  renderTable();
+}
+
+riverSel.addEventListener("change", () => { fillDates(true); render(true); });
+dateSel.addEventListener("change", () => render(false));
+document.getElementById("rows").addEventListener("click", (e) => {
+  const tr = e.target.closest("tr");
+  if (!tr) return;
+  const changed = riverSel.value !== tr.dataset.river;
+  riverSel.value = tr.dataset.river;
+  fillDates(false);
+  dateSel.value = tr.dataset.date;
+  render(changed);
+  document.getElementById("map").scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
+// กราฟ
+const series = ["--series-1", "--series-2", "--series-3", "--series-4", "--series-5"];
+new Chart(document.getElementById("chart"), {
+  type: "line",
+  data: {
+    datasets: DATA.rivers.map((rv, i) => ({
+      label: rv.label,
+      data: rowsOf(rv.name).map((r) => ({ x: r.date, y: r.hyacinth_m2 / RAI })),
+      borderColor: css(series[i % series.length]),
+      backgroundColor: css(series[i % series.length]),
+      tension: 0.25, pointRadius: 3,
+    })),
+  },
+  options: {
+    maintainAspectRatio: false,
+    interaction: { mode: "nearest", intersect: false },
+    scales: {
+      x: { type: "category", labels: [...new Set(DATA.rows.map((r) => r.date))].sort(), ticks: { color: css("--muted") }, grid: { color: css("--border") } },
+      y: { beginAtZero: true, ticks: { color: css("--muted") }, grid: { color: css("--border") } },
+    },
+    plugins: {
+      legend: { labels: { color: css("--text"), font: { family: "IBM Plex Sans Thai" } } },
+      tooltip: { callbacks: { label: (c) => `${c.dataset.label}: ${fmt(c.parsed.y, 1)} ไร่` } },
+    },
+  },
+});
+
+fillDates(false);
+render(true);
+</script>
+<style>.pixelated { image-rendering: pixelated; }</style>
+</body>
+</html>
