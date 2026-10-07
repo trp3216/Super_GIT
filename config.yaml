@@ -1,0 +1,52 @@
+# ตั้งค่าโปรเจกต์ตรวจวัดผักตบชวาจาก Sentinel-2
+#
+# เพิ่มลำน้ำ/คลองใหม่: คัดลอกบล็อกใน `rivers` แล้วแก้ name, label, shapefile
+#   shapefile : path ไปยังไฟล์ .shp / .gpkg / .geojson ของลำน้ำ
+#   query     : (ไม่บังคับ) เลือกเฉพาะบาง feature ตาม attribute เช่น "NAME == 'ท่าจีน'"
+#   buffer_m  : (ไม่บังคับ) ถ้า shapefile เป็นเส้นกลางลำน้ำ (Line) ให้ขยายเป็นพื้นที่ (เมตร, ครึ่งความกว้าง)
+#   clip      : (ไม่บังคับ) ตัดเฉพาะส่วนที่อยู่ในขอบเขต เช่น เขตจังหวัด
+
+rivers:
+  - name: tha_chin_chainat
+    label: แม่น้ำท่าจีน (ชัยนาท)
+    shapefile: data/rivers/tha_chin.shp
+    # query: "NAME == 'แม่น้ำท่าจีน'"
+    # buffer_m: 40
+    clip:
+      shapefile: data/boundaries/provinces.shp
+      query: "PROV_NAMT == 'ชัยนาท'"
+
+  - name: tha_chin_suphanburi
+    label: แม่น้ำท่าจีน (สุพรรณบุรี)
+    shapefile: data/rivers/tha_chin.shp
+    clip:
+      shapefile: data/boundaries/provinces.shp
+      query: "PROV_NAMT == 'สุพรรณบุรี'"
+
+  - name: noi
+    label: แม่น้ำน้อย
+    shapefile: data/rivers/noi.shp
+
+  # ตัวอย่างการเพิ่มคลองในอนาคต
+  # - name: khlong_example
+  #   label: คลองตัวอย่าง
+  #   shapefile: data/rivers/khlong_example.shp
+  #   buffer_m: 15
+
+imagery:
+  collection: sentinel-2-l2a
+  max_scene_cloud: 60        # % เมฆสูงสุดของทั้งภาพที่จะดึงมาใช้
+  min_valid_fraction: 0.5    # ต้องเห็นพื้นที่ลำน้ำ (ไม่ติดเมฆ) อย่างน้อยกี่ส่วน จึงจะนับวันนั้น
+
+classification:
+  # ผักตบชวาลอยน้ำ: พืชสีเขียวหนาแน่น (NDVI สูง) ภายในขอบเขตลำน้ำ
+  ndvi_min: 0.35
+  # น้ำเปิด: NDWI (Green-NIR) สูง
+  ndwi_water_min: 0.0
+
+volume:
+  # ค่าประมาณเริ่มต้น ควรปรับเทียบกับข้อมูลภาคสนามในพื้นที่จริง
+  mat_thickness_m: 0.5         # ความหนาของแพผักตบ (เหนือ+ใต้น้ำ) เมตร
+  wet_biomass_kg_m2: 25.0      # น้ำหนักสดต่อตารางเมตร (กก./ตร.ม.)
+
+output_dir: outputs
