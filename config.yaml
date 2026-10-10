@@ -55,6 +55,7 @@ rivers:
 
 imagery:
   collection: sentinel-2-l2a
+  source: planetary_computer  # หรือ aws (bucket sentinel-cogs) — ใช้เมื่อเข้า Planetary Computer ไม่ได้ หรือสั่ง --source aws
   max_scene_cloud: 60        # % เมฆสูงสุดของทั้งภาพที่จะดึงมาใช้
   min_valid_fraction: 0.5    # ต้องเห็นพื้นที่ลำน้ำ (ไม่ติดเมฆ) อย่างน้อยกี่ส่วน จึงจะนับวันนั้น
 

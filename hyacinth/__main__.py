@@ -76,7 +76,7 @@ def process_cell(item, geom, cfg_cls, water_hrefs, raster_dir, raster_name):
     return {**summarize(classes, pixel_m2), "geom_m2": bands["inside"].sum() * pixel_m2}
 
 
-def run(cfg, start, end, only=None, save_rasters=False):
+def run(cfg, start, end, only=None, save_rasters=False, source=None):
     out_dir = cfg["_base_dir"] / cfg.get("output_dir", "outputs")
     img, cls, vol = cfg["imagery"], cfg["classification"], cfg["volume"]
     rows = []
@@ -90,7 +90,8 @@ def run(cfg, start, end, only=None, save_rasters=False):
         gdf = gpd.GeoDataFrame({"name": [river["name"]], "label": [river["label"]]}, geometry=[geom], crs=4326)
         gdf.to_file(out_dir / "river_polygons.gpkg", layer=river["name"])
         total_m2 = gdf.to_crs(gdf.estimate_utm_crs()).area.iloc[0]
-        items = search(geom, start, end, img["collection"], img["max_scene_cloud"])
+        items = search(geom, start, end, img["collection"], img["max_scene_cloud"],
+                       source or img.get("source", "planetary_computer"))
         water_hrefs = search_water_history(geom) if cls.get("min_water_occurrence") else None
         groups = group_by_date(items)
         print(f"   พบภาพ {len(items)} ภาพ / {len(groups)} วัน")
@@ -155,11 +156,13 @@ def main():
     p.add_argument("--river", action="append", help="ประมวลผลเฉพาะลำน้ำนี้ (ใส่ซ้ำได้)")
     p.add_argument("--save-rasters", action="store_true", help="บันทึกแผนที่จำแนก GeoTIFF")
     p.add_argument("--plot", action="store_true", help="สร้างกราฟ PNG")
+    p.add_argument("--source", choices=["planetary_computer", "aws"],
+                   help="แหล่งภาพ (ค่าเริ่มต้นตาม config.yaml) — aws ใช้เมื่อเข้า Planetary Computer ไม่ได้")
     p.add_argument("--html", action="store_true", help="สร้างรายงานหน้าเว็บ (แผนที่ + กราฟ + ตาราง)")
     args = p.parse_args()
 
     cfg = load_config(args.config)
-    rows, out_dir = run(cfg, args.start, args.end, args.river, args.save_rasters or args.html)
+    rows, out_dir = run(cfg, args.start, args.end, args.river, args.save_rasters or args.html, args.source)
     if not rows:
         print("\nไม่มีผลลัพธ์ในช่วงวันที่นี้")
         return

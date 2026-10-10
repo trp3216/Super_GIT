@@ -8,3 +8,4 @@ pystac-client>=0.7
 planetary-computer>=1.0
 matplotlib>=3.8
 pytest>=8.0
+mgrs>=1.4

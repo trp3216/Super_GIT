@@ -1,7 +1,12 @@
-"""ค้นหาและอ่านภาพ Sentinel-2 L2A จาก Microsoft Planetary Computer (ฟรี ไม่ต้องสมัครบัญชี)"""
+"""ค้นหาและอ่านภาพ Sentinel-2 L2A จาก Microsoft Planetary Computer หรือ AWS Open Data (ฟรี ไม่ต้องสมัครบัญชี)"""
+import json
 import math
 import os
+import re
+import urllib.request
 from collections import defaultdict
+from datetime import date, datetime
+from types import SimpleNamespace
 
 import numpy as np
 import planetary_computer
@@ -31,10 +36,14 @@ for _k, _v in {
 
 def _signed(href):
     # เซ็น URL ตอนอ่านจริง (token มีอายุจำกัด และ planetary_computer ต่ออายุให้อัตโนมัติ)
+    if "blob.core.windows.net" not in href:
+        return href
     return planetary_computer.sign(href)
 
 
-def search(geom, start, end, collection="sentinel-2-l2a", max_scene_cloud=60):
+def search(geom, start, end, collection="sentinel-2-l2a", max_scene_cloud=60, source="planetary_computer"):
+    if source == "aws":
+        return search_aws(geom, start, end, max_scene_cloud)
     client = pystac_client.Client.open(STAC_URL)
     items = client.search(
         collections=[collection],
@@ -56,7 +65,72 @@ def group_by_date(items):
     return dict(sorted(groups.items()))
 
 
+AWS_BUCKET = "https://sentinel-cogs.s3.us-west-2.amazonaws.com"
+AWS_PREFIX = "sentinel-s2-l2a-cogs"
+
+
+def _mgrs_tiles(geom, step_deg=0.02):
+    """รหัส tile MGRS (เช่น 47PPS) ทุก tile ที่ลำน้ำผ่าน"""
+    import mgrs
+    from shapely.geometry import Point
+
+    m = mgrs.MGRS()
+    minx, miny, maxx, maxy = geom.bounds
+    near = geom.buffer(step_deg)
+    tiles = set()
+    for x in np.arange(minx, maxx + step_deg, step_deg):
+        for y in np.arange(miny, maxy + step_deg, step_deg):
+            if near.contains(Point(x, y)):
+                tiles.add(m.toMGRS(y, x, MGRSPrecision=0))
+    return sorted(tiles)
+
+
+def _s3_prefixes(prefix):
+    url = f"{AWS_BUCKET}/?list-type=2&delimiter=/&prefix={prefix}"
+    with urllib.request.urlopen(url, timeout=60) as r:
+        xml = r.read().decode()
+    return re.findall(r"<Prefix>([^<]+/)</Prefix>", xml)[1:]
+
+
+def search_aws(geom, start, end, max_scene_cloud=60):
+    """ค้นภาพจาก bucket sentinel-cogs (AWS Open Data) โดยตรง — ใช้เมื่อเข้า Planetary Computer ไม่ได้"""
+    d0, d1 = date.fromisoformat(start), date.fromisoformat(end)
+    months = sorted({(y, mo) for y in range(d0.year, d1.year + 1) for mo in range(1, 13)
+                     if (y, mo) >= (d0.year, d0.month) and (y, mo) <= (d1.year, d1.month)})
+    items = []
+    for tile in _mgrs_tiles(geom):
+        zone, band, sq = tile[:2], tile[2], tile[3:]
+        latest = {}  # (วันที่) -> (sequence, prefix) — เก็บเฉพาะการประมวลผลล่าสุดของแต่ละวัน
+        for y, mo in months:
+            for pre in _s3_prefixes(f"{AWS_PREFIX}/{zone}/{band}/{sq}/{y}/{mo}/"):
+                name = pre.rstrip("/").split("/")[-1]  # S2B_47PPS_20260905_0_L2A
+                mt = re.match(r"S2[A-D]_\w{5}_(\d{8})_(\d+)_L2A$", name)
+                if not mt:
+                    continue
+                d = date(int(mt[1][:4]), int(mt[1][4:6]), int(mt[1][6:]))
+                if d0 <= d <= d1:
+                    key = (d, name[:3])
+                    if key not in latest or int(mt[2]) > latest[key][0]:
+                        latest[key] = (int(mt[2]), pre, name)
+        for _, pre, name in latest.values():
+            with urllib.request.urlopen(f"{AWS_BUCKET}/{pre}{name}.json", timeout=60) as r:
+                d = json.load(r)
+            props = d["properties"]
+            if props.get("eo:cloud_cover", 100) >= max_scene_cloud:
+                continue
+            props["s2:mgrs_tile"] = tile
+            base = f"{AWS_BUCKET}/{pre}"
+            items.append(SimpleNamespace(
+                id=d["id"], geometry=d["geometry"], properties=props,
+                datetime=datetime.fromisoformat(props["datetime"].replace("Z", "+00:00")),
+                assets={b: SimpleNamespace(href=f"{base}{b}.tif") for b in ("B03", "B04", "B08", "SCL")},
+            ))
+    return items
+
+
 def _boa_offset(item):
+    if item.properties.get("earthsearch:boa_offset_applied"):
+        return 0  # ภาพบน AWS หัก offset ให้แล้ว
     # ตั้งแต่ processing baseline 04.00 (ม.ค. 2022) ค่า DN ถูกบวก offset 1000
     try:
         return 1000 if float(item.properties.get("s2:processing_baseline", "0")) >= 4.0 else 0
