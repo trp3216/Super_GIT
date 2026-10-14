@@ -8,3 +8,6 @@ pystac-client>=0.7
 planetary-computer>=1.0
 matplotlib>=3.8
 pytest>=8.0
+pyshp>=2.3
+scipy>=1.11
+scikit-image>=0.22
