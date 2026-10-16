@@ -1,13 +1,17 @@
 #!/usr/bin/env bash
-# Publish the Chao Phraya 3D page to a Cloudflare R2 bucket with a public r2.dev URL.
+# Deploy the Chao Phraya 3D site as a Cloudflare Worker (static page + plan archive API)
+# with uploaded plan PDFs stored in an R2 bucket.
 #
-# Required env: CLOUDFLARE_API_TOKEN (Account > Workers R2 Storage: Edit), CLOUDFLARE_ACCOUNT_ID
-# Optional env: BUCKET (default: chao-phraya-3d), WRANGLER_VERSION
+# Required env: CLOUDFLARE_API_TOKEN (Account > Workers R2 Storage: Edit and Account > Workers Scripts: Edit),
+#               CLOUDFLARE_ACCOUNT_ID
+# Optional env: UPLOAD_PASSWORD (sets the archive upload password), WRANGLER_VERSION
 set -euo pipefail
 
-BUCKET="${BUCKET:-chao-phraya-3d}"
+BUCKET="chao-phraya-3d" # must match bucket_name in wrangler.toml
 WRANGLER_VERSION="${WRANGLER_VERSION:-4.140.0}"
 SITE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TMP="${RUNNER_TEMP:-${TMPDIR:-/tmp}}"
+cd "${SITE_DIR}"
 
 : "${CLOUDFLARE_API_TOKEN:?set CLOUDFLARE_API_TOKEN}"
 : "${CLOUDFLARE_ACCOUNT_ID:?set CLOUDFLARE_ACCOUNT_ID}"
@@ -28,24 +32,42 @@ else
   wr r2 bucket create "${BUCKET}"
 fi
 
-put() { # put <key> <content-type> <cache-control>
-  echo "Uploading ${1}"
-  wr r2 object put "${BUCKET}/${1}" --file "${SITE_DIR}/${1}" --ct "${2}" --cc "${3}" --remote
-}
-put vendor/three.min.js      "application/javascript; charset=utf-8" "public, max-age=31536000, immutable"
-put vendor/OrbitControls.js  "application/javascript; charset=utf-8" "public, max-age=31536000, immutable"
-put index.html               "text/html; charset=utf-8"              "public, max-age=300"
-
-wr r2 bucket dev-url enable "${BUCKET}" -y
-DEV_URL="$(wr r2 bucket dev-url get "${BUCKET}" | sed 's/\x1b\[[0-9;]*m//g' | grep -oE 'https://[a-z0-9.-]+\.r2\.dev' | head -n1 || true)"
-
-if [[ -n "${DEV_URL}" ]]; then
-  # r2.dev does not serve index documents, so link to the file itself.
-  PAGE_URL="${DEV_URL}/index.html"
-  echo "Published: ${PAGE_URL}"
-  if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
-    printf '### แผนระบายเจ้าพระยา 3 มิติ\n\nเปิดเว็บ: %s\n' "${PAGE_URL}" >> "${GITHUB_STEP_SUMMARY}"
-  fi
+# Put the 16 Oct 2569 plan into the archive once. The marker lives outside plans/,
+# so deleting that plan from the web page does not bring it back on the next deploy.
+SEED_ID="2026-10-16-seed0001"
+if wr r2 object get "${BUCKET}/meta/seeded-${SEED_ID}" --remote --pipe >/dev/null 2>&1; then
+  echo "Archive already seeded"
 else
-  echo "Uploaded, but could not read the r2.dev URL. Check R2 > ${BUCKET} > Settings in the Cloudflare dashboard." >&2
+  echo "Seeding the archive with the 16 Oct plan"
+  wr r2 object put "${BUCKET}/plans/${SEED_ID}.pdf" --file seed/2026-10-16.pdf --ct application/pdf --remote
+  wr r2 object put "${BUCKET}/plans/${SEED_ID}.jpg" --file seed/2026-10-16.jpg --ct image/jpeg --remote
+  printf 'seeded\n' > "${TMP}/seeded.txt"
+  wr r2 object put "${BUCKET}/meta/seeded-${SEED_ID}" --file "${TMP}/seeded.txt" --ct text/plain --remote
+fi
+
+wr deploy 2>&1 | tee "${TMP}/deploy.log"
+SITE_URL="$(sed 's/\x1b\[[0-9;]*m//g' "${TMP}/deploy.log" | grep -oE 'https://[a-z0-9.-]+\.workers\.dev' | head -n1 || true)"
+
+if [[ -n "${UPLOAD_PASSWORD:-}" ]]; then
+  printf '%s' "${UPLOAD_PASSWORD}" | wr secret put UPLOAD_PASSWORD
+else
+  echo "UPLOAD_PASSWORD is not set, so the archive stays read-only until it is added." >&2
+fi
+
+if [[ -z "${SITE_URL}" ]]; then
+  echo "Deployed, but could not read the workers.dev URL. See Workers & Pages > chao-phraya-3d in the Cloudflare dashboard." >&2
+  exit 0
+fi
+echo "Published: ${SITE_URL}"
+
+# Keep the earlier r2.dev link working by sending it to the Worker.
+cat > "${TMP}/redirect.html" <<HTML
+<!doctype html><meta charset="utf-8"><title>แผนระบายเจ้าพระยา 3 มิติ</title>
+<meta http-equiv="refresh" content="0; url=${SITE_URL}/">
+<p>หน้านี้ย้ายไปที่ <a href="${SITE_URL}/">${SITE_URL}/</a></p>
+HTML
+wr r2 object put "${BUCKET}/index.html" --file "${TMP}/redirect.html" --ct "text/html; charset=utf-8" --cc "public, max-age=300" --remote
+
+if [[ -n "${GITHUB_STEP_SUMMARY:-}" ]]; then
+  printf '### แผนระบายเจ้าพระยา 3 มิติ\n\nเปิดเว็บ: %s\n' "${SITE_URL}" >> "${GITHUB_STEP_SUMMARY}"
 fi

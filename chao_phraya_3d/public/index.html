@@ -16,7 +16,7 @@
   --good:#1d7a43; --warn:#9a6700; --crit:#c2302e;
   --good-bg:#dbeee2; --warn-bg:#f5e8cc; --crit-bg:#f6dbda;
   --sky:#d9e5e5; --land:#b3c391; --land-2:#9cb07c; --bank:#cdb98f; --water:#3b8ec8; --sea:#3a84b6;
-  --concrete:#d6d2c8; --steel:#55666b; --spark:#ffffff;
+  --paper:#ffffff; --concrete:#d6d2c8; --steel:#55666b; --spark:#ffffff;
   --f-display:"Chakra Petch","IBM Plex Sans Thai",system-ui,sans-serif;
   --f-body:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
@@ -200,6 +200,48 @@ details.data summary{cursor:pointer;font-family:var(--f-display);font-weight:600
 footer.src{font-size:.8rem;color:var(--ink-3);max-width:100ch;display:grid;gap:4px}
 footer.src p{margin:0}
 
+/* archive of release plans */
+.archive{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:12px;min-width:0}
+.archive-head{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:flex-end;justify-content:space-between}
+.archive-head p{margin:.2rem 0 0;font-size:.9rem}
+.archive-strip{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(200px,240px);gap:12px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x proximity}
+.plan-card{position:relative;display:grid;gap:3px;text-align:left;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px;cursor:pointer;scroll-snap-align:start}
+.plan-card:hover{border-color:var(--accent)}
+.plan-card:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.plan-card .thumb{display:block;aspect-ratio:16/9;border-radius:4px;overflow:hidden;background:var(--panel-2);border:1px solid var(--line);margin-bottom:4px}
+.plan-card img{width:100%;height:100%;object-fit:cover;display:block}
+.nothumb{display:grid;place-items:center;height:100%;font:600 .9rem var(--f-display);color:var(--ink-3)}
+.pc-date{font:600 .95rem var(--f-display)}
+.pc-sub{font-size:.74rem;color:var(--ink-3)}
+.pc-badge{position:absolute;top:14px;left:14px;font:600 .7rem var(--f-body);background:var(--accent);color:var(--accent-ink);border-radius:999px;padding:1px 8px}
+.empty{margin:0;color:var(--ink-2);font-size:.9rem}
+.btn,.btn-primary{font:600 13px/1.2 var(--f-body);border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.btn-primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn:hover{border-color:var(--accent)}
+.btn.danger{color:var(--crit)}
+.btn:focus-visible,.btn-primary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.btn:disabled,.btn-primary:disabled{opacity:.6;cursor:progress}
+.modal{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:0;width:min(480px,calc(100vw - 32px));max-height:calc(100dvh - 32px)}
+.modal::backdrop{background:rgb(0 0 0 / .55)}
+.modal-body{display:grid;gap:6px;padding:18px}
+.modal-body h2{margin-bottom:4px}
+.modal-body label{font-size:.85rem;font-weight:600;margin-top:6px}
+.modal input{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+.modal input:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.up-preview{display:grid;gap:6px;justify-items:start}
+.up-preview img{width:100%;max-width:100%;border-radius:6px;border:1px solid var(--line);background:var(--paper)}
+.form-msg{min-height:1.4em;margin:0;font-size:.85rem;color:var(--ink-2)}
+.form-msg.err{color:var(--crit)}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}
+.viewer{width:min(1200px,calc(100vw - 24px));height:calc(100dvh - 24px);max-height:calc(100dvh - 24px)}
+.viewer[open]{display:grid;grid-template-rows:auto minmax(0,1fr)}
+.viewer-bar{display:grid;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.viewer-top{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between}
+.viewer-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.del-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:.85rem}
+.viewer-pages{overflow:auto;padding:14px;display:grid;gap:14px;align-content:start;background:var(--panel-2)}
+.viewer-pages canvas{display:block;width:100%;height:auto;background:var(--paper);border-radius:4px;box-shadow:0 1px 4px rgb(0 0 0 / .2)}
+
 @media (prefers-reduced-motion: reduce){.gauge .fill,.gate .bar i{transition:none}}
 </style>
 
@@ -282,6 +324,53 @@ footer.src p{margin:0}
       </section>
     </aside>
   </div>
+
+  <section class="archive" id="archive" aria-labelledby="archiveTitle">
+    <div class="archive-head">
+      <div>
+        <h2 id="archiveTitle">คลังแผนการระบาย</h2>
+        <p class="muted" id="archiveNote">แผนการระบายน้ำเขื่อนเจ้าพระยาที่อัปโหลดไว้ เรียงจากวันล่าสุด คลิกภาพเพื่อดูฉบับเต็ม</p>
+      </div>
+      <button type="button" class="btn-primary" id="uploadBtn" hidden>อัปโหลด PDF</button>
+    </div>
+    <div class="archive-strip" id="archiveList" aria-live="polite"><p class="empty">กำลังโหลดคลังแผน…</p></div>
+  </section>
+
+  <dialog class="modal" id="uploadDlg" aria-labelledby="upTitle">
+    <form id="uploadForm" class="modal-body" novalidate>
+      <h2 id="upTitle">อัปโหลดแผนการระบาย</h2>
+      <label for="upFile">ไฟล์ PDF (ไม่เกิน 25 MB)</label>
+      <input type="file" id="upFile" accept="application/pdf,.pdf">
+      <div class="up-preview"><img id="upThumb" alt="ภาพย่อหน้าแรกของไฟล์ที่เลือก" hidden><span id="upThumbNote" class="unit">เลือกไฟล์เพื่อดูภาพย่อหน้าแรก</span></div>
+      <label for="upDate">วันที่ของแผน</label>
+      <input type="date" id="upDate">
+      <label for="upPass">รหัสผ่านสำหรับอัปโหลด</label>
+      <input type="password" id="upPass" autocomplete="current-password">
+      <p class="form-msg" id="upMsg" role="status"></p>
+      <div class="modal-actions"><button type="button" class="btn" id="upCancel">ยกเลิก</button><button type="submit" class="btn-primary" id="upSubmit">อัปโหลด</button></div>
+    </form>
+  </dialog>
+
+  <dialog class="modal viewer" id="viewDlg" aria-labelledby="viewTitle">
+    <div class="viewer-bar">
+      <div class="viewer-top">
+        <h2 id="viewTitle">แผนการระบาย</h2>
+        <div class="viewer-actions">
+          <a class="btn" id="viewOpen" href="#" target="_blank" rel="noopener">เปิดไฟล์ PDF</a>
+          <button type="button" class="btn danger" id="viewDelete" hidden>ลบ</button>
+          <button type="button" class="btn" id="viewClose">ปิด</button>
+        </div>
+      </div>
+      <form class="del-row" id="delForm" hidden>
+        <label for="delPass">รหัสผ่าน</label>
+        <input type="password" id="delPass" autocomplete="current-password">
+        <button type="submit" class="btn danger" id="delOk">ยืนยันลบแผนนี้</button>
+        <button type="button" class="btn" id="delCancel">ไม่ลบ</button>
+        <span class="form-msg" id="delMsg" role="status"></span>
+      </form>
+    </div>
+    <div class="viewer-pages" id="viewPages"></div>
+  </dialog>
 
   <div class="charts">
     <figure class="chart">
@@ -850,5 +939,154 @@ catch(err){
   $('stage').insertAdjacentHTML('beforeend','<div class="stage-fallback">ไม่สามารถแสดงภาพ 3 มิติในเบราว์เซอร์นี้ (ต้องใช้ WebGL) ค่าในแผงด้านข้างและกราฟยังใช้งานได้ตามปกติ</div>');
   $('hint').hidden=true; $('resetView').hidden=true;
 }
+})();
+</script>
+<script>
+/* archive of release-plan PDFs (served by the Cloudflare Worker at /api/plans) */
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const TH_M=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const thaiDate=iso=>{const [y,m,d]=iso.split('-').map(Number);return `${d} ${TH_M[m-1]} ${y+543}`;};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtUp=iso=>{try{return new Date(iso).toLocaleString('th-TH',{day:'numeric',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'});}catch(e){return '';}};
+const store={get(k){try{return sessionStorage.getItem(k)||'';}catch(e){return '';}},set(k,v){try{sessionStorage.setItem(k,v);}catch(e){}}};
+let plans=[], canUpload=false, apiOK=false, current=null, thumbBlob=null, viewToken=0;
+
+let pdfjsP=null;
+function loadPdfjs(){
+  if(window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+  if(!pdfjsP) pdfjsP=new Promise((res,rej)=>{const s=document.createElement('script');s.src='vendor/pdf.min.js';
+    s.onload=()=>{window.pdfjsLib.GlobalWorkerOptions.workerSrc='vendor/pdf.worker.min.js';res(window.pdfjsLib);};
+    s.onerror=()=>{pdfjsP=null;rej(new Error('pdf.js'));};document.head.appendChild(s);});
+  return pdfjsP;
+}
+
+/* finds the plan date in Thai text, e.g. "ข้อมูล ณ 16 ต.ค. 2569" or a title "... 16 ต.ค. 2569" */
+function detectDate(text){
+  const mon=TH_M.map(m=>m.replace(/\./g,'\\.')).join('|');
+  const one=`(\\d{1,2})\\s*(${mon})\\s*(\\d{4}|\\d{2})`;
+  for(const re of [new RegExp('ข้อมูล\\s*ณ\\s*'+one), new RegExp(one)]){
+    const m=text.replace(/\s+/g,' ').match(re); if(!m) continue;
+    let y=+m[3]; if(y<100) y+=2500; if(y>2400) y-=543;
+    const mo=TH_M.indexOf(m[2])+1, d=+m[1];
+    if(d<1||d>31||y<2000||y>2100) continue;
+    return `${y}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  }
+  return '';
+}
+
+async function refresh(){
+  try{
+    const r=await fetch('/api/plans',{cache:'no-store'});
+    if(!r.ok||!(r.headers.get('content-type')||'').includes('json')) throw new Error('no api');
+    const j=await r.json(); plans=j.plans||[]; canUpload=!!j.canUpload; apiOK=true;
+  }catch(e){apiOK=false;}
+  render();
+}
+function render(){
+  const list=$('archiveList');
+  $('uploadBtn').hidden=!apiOK;
+  if(!apiOK){list.innerHTML='<p class="empty">คลังแผนการระบายใช้งานได้เมื่อเปิดหน้านี้จากเว็บไซต์หลักบน Cloudflare</p>';return;}
+  if(!plans.length){list.innerHTML='<p class="empty">ยังไม่มีแผนในคลัง กด “อัปโหลด PDF” เพื่อเพิ่มฉบับแรก</p>';return;}
+  list.innerHTML=plans.map((p,i)=>`<button type="button" class="plan-card" data-id="${esc(p.id)}" aria-label="ดูแผนการระบาย ${thaiDate(p.date)}">
+    <span class="thumb">${p.thumb?`<img src="${esc(p.thumb)}" alt="" loading="lazy">`:'<span class="nothumb">PDF</span>'}</span>
+    ${i===0?'<span class="pc-badge">ล่าสุด</span>':''}
+    <span class="pc-date">${thaiDate(p.date)}</span>
+    <span class="pc-sub">${p.uploaded?'อัปโหลด '+esc(fmtUp(p.uploaded)):''}</span></button>`).join('');
+}
+$('archiveList').addEventListener('click',e=>{const b=e.target.closest('.plan-card');if(b)openPlan(b.dataset.id);});
+
+/* full view */
+async function openPlan(id){
+  const p=plans.find(x=>x.id===id); if(!p) return;
+  current=p; const tok=++viewToken;
+  $('viewTitle').textContent='แผนการระบาย '+thaiDate(p.date);
+  $('viewOpen').href=p.pdf;
+  $('viewDelete').hidden=!canUpload; $('delForm').hidden=true; $('delMsg').textContent='';
+  const pages=$('viewPages'); pages.innerHTML='<p class="empty">กำลังเปิดเอกสาร…</p>';
+  $('viewDlg').showModal();
+  try{
+    const lib=await loadPdfjs();
+    const doc=await lib.getDocument({url:p.pdf}).promise; if(tok!==viewToken) return;
+    pages.innerHTML='';
+    const w=Math.max(320,Math.min(pages.clientWidth-28,1400)), dpr=Math.min(window.devicePixelRatio||1,2);
+    for(let n=1;n<=doc.numPages;n++){
+      const page=await doc.getPage(n); if(tok!==viewToken) return;
+      const vp=page.getViewport({scale:w/page.getViewport({scale:1}).width*dpr});
+      const c=document.createElement('canvas'); c.width=Math.round(vp.width); c.height=Math.round(vp.height);
+      c.setAttribute('role','img'); c.setAttribute('aria-label',`หน้า ${n} จาก ${doc.numPages}`);
+      pages.appendChild(c);
+      await page.render({canvasContext:c.getContext('2d'),viewport:vp}).promise;
+    }
+  }catch(e){ if(tok===viewToken) pages.innerHTML='<p class="empty">แสดงเอกสารในหน้านี้ไม่ได้ กด “เปิดไฟล์ PDF” เพื่อเปิดในแท็บใหม่</p>'; }
+}
+$('viewClose').addEventListener('click',()=>$('viewDlg').close());
+$('viewDlg').addEventListener('close',()=>{viewToken++;$('viewPages').innerHTML='';});
+$('viewDlg').addEventListener('click',e=>{if(e.target===$('viewDlg'))$('viewDlg').close();});
+
+/* delete */
+$('viewDelete').addEventListener('click',()=>{$('delForm').hidden=false;$('delPass').value=store.get('upPass');$('delPass').focus();});
+$('delCancel').addEventListener('click',()=>{$('delForm').hidden=true;$('delMsg').textContent='';});
+$('delForm').addEventListener('submit',async e=>{
+  e.preventDefault(); if(!current) return;
+  const pass=$('delPass').value; if(!pass){$('delMsg').textContent='กรุณาใส่รหัสผ่าน';return;}
+  $('delOk').disabled=true; $('delMsg').textContent='กำลังลบ…';
+  try{
+    const r=await fetch('/api/plans/'+encodeURIComponent(current.id),{method:'DELETE',headers:{Authorization:'Bearer '+encodeURIComponent(pass)}});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(j.error||'ลบไม่สำเร็จ ('+r.status+')');
+    store.set('upPass',pass); $('viewDlg').close(); await refresh();
+    $('archiveNote').textContent='ลบแผนวันที่ '+thaiDate(current.date)+' แล้ว';
+  }catch(err){$('delMsg').textContent=err.message;}
+  finally{$('delOk').disabled=false;}
+});
+
+/* upload */
+function upMsg(t,err){const m=$('upMsg');m.textContent=t;m.classList.toggle('err',!!err);}
+function resetUpload(){ $('uploadForm').reset(); thumbBlob=null; $('upThumb').hidden=true; $('upThumbNote').textContent='เลือกไฟล์เพื่อดูภาพย่อหน้าแรก'; upMsg(''); }
+$('uploadBtn').addEventListener('click',()=>{resetUpload();$('upPass').value=store.get('upPass');$('uploadDlg').showModal();});
+$('upCancel').addEventListener('click',()=>$('uploadDlg').close());
+$('upFile').addEventListener('change',async()=>{
+  const f=$('upFile').files[0]; thumbBlob=null; $('upThumb').hidden=true; upMsg('');
+  if(!f) return;
+  $('upThumbNote').textContent='กำลังอ่านไฟล์…';
+  try{
+    const lib=await loadPdfjs();
+    const doc=await lib.getDocument({data:new Uint8Array(await f.arrayBuffer())}).promise;
+    let text='';
+    try{const meta=await doc.getMetadata(); text+=((meta.info&&meta.info.Title)||'')+' ';}catch(e){}
+    const p1=await doc.getPage(1);
+    try{const tc=await p1.getTextContent(); text+=tc.items.map(i=>i.str).join(' ');}catch(e){}
+    const d=detectDate(text); if(d) $('upDate').value=d;
+    const vp=p1.getViewport({scale:640/p1.getViewport({scale:1}).width});
+    const c=document.createElement('canvas'); c.width=Math.round(vp.width); c.height=Math.round(vp.height);
+    const ctx=c.getContext('2d'); ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,c.width,c.height);
+    await p1.render({canvasContext:ctx,viewport:vp}).promise;
+    thumbBlob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.85));
+    if(thumbBlob){$('upThumb').src=URL.createObjectURL(thumbBlob);$('upThumb').hidden=false;}
+    $('upThumbNote').textContent= d ? `พบวันที่ในเอกสาร: ${thaiDate(d)} (แก้ได้ด้านล่าง)` : 'ไม่พบวันที่ในเอกสาร กรุณาเลือกวันที่ของแผนเอง';
+  }catch(e){ $('upThumbNote').textContent='อ่านไฟล์นี้ไม่ได้ ตรวจสอบว่าเป็นไฟล์ PDF'; }
+});
+$('uploadForm').addEventListener('submit',async e=>{
+  e.preventDefault();
+  const f=$('upFile').files[0], date=$('upDate').value, pass=$('upPass').value;
+  if(!f) return upMsg('กรุณาเลือกไฟล์ PDF',true);
+  if(f.size>25*1024*1024) return upMsg('ไฟล์ใหญ่เกิน 25 MB',true);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return upMsg('กรุณาเลือกวันที่ของแผน',true);
+  if(!pass) return upMsg('กรุณาใส่รหัสผ่าน',true);
+  const fd=new FormData(); fd.append('pdf',f,f.name); fd.append('date',date); if(thumbBlob) fd.append('thumb',thumbBlob,'thumb.jpg');
+  $('upSubmit').disabled=true; upMsg('กำลังอัปโหลด…');
+  try{
+    const r=await fetch('/api/plans',{method:'POST',headers:{Authorization:'Bearer '+encodeURIComponent(pass)},body:fd});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(j.error||'อัปโหลดไม่สำเร็จ ('+r.status+')');
+    store.set('upPass',pass); $('uploadDlg').close(); await refresh();
+    $('archiveNote').textContent='อัปโหลดแผนวันที่ '+thaiDate(date)+' แล้ว';
+  }catch(err){upMsg(err.message,true);}
+  finally{$('upSubmit').disabled=false;}
+});
+
+refresh();
 })();
 </script>

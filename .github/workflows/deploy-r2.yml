@@ -1,4 +1,4 @@
-name: Deploy Chao Phraya 3D to R2
+name: Deploy Chao Phraya 3D to Cloudflare
 
 on:
   push:
@@ -35,9 +35,9 @@ jobs:
             exit 1
           fi
 
-      - name: Upload to R2
+      - name: Deploy Worker and R2 archive
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          BUCKET: chao-phraya-3d
+          UPLOAD_PASSWORD: ${{ secrets.UPLOAD_PASSWORD }}
         run: bash chao_phraya_3d/deploy.sh
