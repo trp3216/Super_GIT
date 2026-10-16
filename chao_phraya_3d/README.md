@@ -28,4 +28,4 @@ export CLOUDFLARE_API_TOKEN=...   CLOUDFLARE_ACCOUNT_ID=...
 bash chao_phraya_3d/deploy.sh     # ตั้ง BUCKET=ชื่ออื่น ได้ถ้าต้องการ
 ```
 
-ต้องมี Node.js 18 ขึ้นไป (สคริปต์เรียก `npx wrangler` เวอร์ชันที่ pin ไว้)
+ต้องมี Node.js 22 ขึ้นไป (สคริปต์เรียก `npx wrangler` เวอร์ชันที่ pin ไว้)

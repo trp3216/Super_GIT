@@ -12,6 +12,12 @@ SITE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 : "${CLOUDFLARE_API_TOKEN:?set CLOUDFLARE_API_TOKEN}"
 : "${CLOUDFLARE_ACCOUNT_ID:?set CLOUDFLARE_ACCOUNT_ID}"
 
+NODE_MAJOR="$(node -p 'process.versions.node.split(".")[0]' 2>/dev/null || echo 0)"
+if (( NODE_MAJOR < 22 )); then
+  echo "wrangler ${WRANGLER_VERSION} needs Node.js 22 or newer (found: $(node --version 2>/dev/null || echo none))" >&2
+  exit 1
+fi
+
 export NO_COLOR=1 FORCE_COLOR=0
 wr() { npx --yes "wrangler@${WRANGLER_VERSION}" "$@"; }
 
