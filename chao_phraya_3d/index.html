@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="th">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>แผนระบายเจ้าพระยา 3 มิติ</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@500&family=IBM+Plex+Sans+Thai:wght@400;500;600&display=swap">
+<style>
+/* Layout: control-room console. The 3D river model is the instrument; readings sit beside it, the timeline and tour below it, charts and the full table last. */
+:root{
+  --bg:#e8eeed; --panel:#f8fbfa; --panel-2:#eef3f2; --ink:#10242a; --ink-2:#465b60; --ink-3:#6c7f84; --line:#cfdad9;
+  --accent:#0d6a70; --accent-ink:#ffffff; --accent-soft:#d5e9e8;
+  --s-release:#2a78d6; --s-net:#eb6834; --s-arrive:#1baf7a;
+  --good:#1d7a43; --warn:#9a6700; --crit:#c2302e;
+  --good-bg:#dbeee2; --warn-bg:#f5e8cc; --crit-bg:#f6dbda;
+  --sky:#d9e5e5; --land:#b3c391; --land-2:#9cb07c; --bank:#cdb98f; --water:#3b8ec8; --sea:#3a84b6;
+  --concrete:#d6d2c8; --steel:#55666b; --spark:#ffffff;
+  --f-display:"Chakra Petch","IBM Plex Sans Thai",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0c1517; --panel:#132023; --panel-2:#182a2e; --ink:#e3eded; --ink-2:#a3b5b7; --ink-3:#7d9194; --line:#24383c;
+  --accent:#4cb5b1; --accent-ink:#06191b; --accent-soft:#17383a;
+  --s-release:#3987e5; --s-net:#d95926; --s-arrive:#199e70;
+  --good:#5cc489; --warn:#e0a83a; --crit:#ef6f6c;
+  --good-bg:#16352a; --warn-bg:#3a2f14; --crit-bg:#3f1c1c;
+  --sky:#0f1d21; --land:#3a4a31; --land-2:#2e3c27; --bank:#6a5c43; --water:#2e77b6; --sea:#245e8b;
+  --concrete:#8c8981; --steel:#9aa9ad; --spark:#cfe6ff;
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0c1517; --panel:#132023; --panel-2:#182a2e; --ink:#e3eded; --ink-2:#a3b5b7; --ink-3:#7d9194; --line:#24383c;
+  --accent:#4cb5b1; --accent-ink:#06191b; --accent-soft:#17383a;
+  --s-release:#3987e5; --s-net:#d95926; --s-arrive:#199e70;
+  --good:#5cc489; --warn:#e0a83a; --crit:#ef6f6c;
+  --good-bg:#16352a; --warn-bg:#3a2f14; --crit-bg:#3f1c1c;
+  --sky:#0f1d21; --land:#3a4a31; --land-2:#2e3c27; --bank:#6a5c43; --water:#2e77b6; --sea:#245e8b;
+  --concrete:#8c8981; --steel:#9aa9ad; --spark:#cfe6ff;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1380px;margin:0 auto;padding-block:20px 48px;display:grid;gap:18px}
+.num{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0;line-height:1.25}
+h1{font-size:clamp(1.5rem,1.1rem + 1.6vw,2.15rem);font-weight:700;letter-spacing:.005em}
+h2{font-size:1.2rem;font-weight:600}
+h3{font-size:.98rem;font-weight:600}
+.eyebrow{font-family:var(--f-display);font-size:.78rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+.muted{color:var(--ink-2)}
+.unit{font-family:var(--f-body);font-weight:400;font-size:.78rem;color:var(--ink-3);letter-spacing:0}
+
+header.top{display:flex;flex-wrap:wrap;gap:10px 24px;align-items:flex-end;justify-content:space-between}
+header.top .lede{max-width:66ch;margin:.35rem 0 0;color:var(--ink-2)}
+.stamp{font-family:var(--f-num);font-size:.82rem;color:var(--ink-2);border:1px solid var(--line);border-radius:6px;padding:6px 10px;background:var(--panel)}
+
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 370px;gap:18px;align-items:start}
+@media (max-width:1000px){.layout{grid-template-columns:minmax(0,1fr)}}
+.main-col{display:grid;gap:12px;min-width:0}
+
+/* stage */
+.stage{position:relative;height:clamp(380px,64vh,720px);border-radius:10px;overflow:hidden;background:var(--sky);border:1px solid var(--line);touch-action:none}
+.stage canvas{display:block;width:100%;height:100%}
+.tags{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.tag{position:absolute;left:0;top:0;pointer-events:auto;display:flex;align-items:center;gap:6px;
+  font:500 12px/1.2 var(--f-body);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;
+  padding:4px 8px;white-space:nowrap;cursor:pointer;box-shadow:0 1px 3px rgb(0 0 0 / .12);will-change:transform}
+.tag::after{content:"";position:absolute;left:50%;top:100%;width:1px;height:12px;background:var(--ink-3)}
+.tag b{font-family:var(--f-num);font-weight:500}
+.tag .dot{width:8px;height:8px;border-radius:50%;flex:none;background:var(--good)}
+.tag .dot.warn{background:var(--warn)} .tag .dot.crit{background:var(--crit)}
+.tag.minor{font-size:11px;padding:2px 6px;color:var(--ink-2)}
+.tag.active{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tag.active .dot{outline:1.5px solid var(--accent-ink)}
+.tag:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.stage:not(.show-minor) .tag.minor{display:none}
+.stage-note{position:absolute;left:10px;top:10px;font-size:11.5px;color:var(--ink-2);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 8px;pointer-events:none}
+.stage-hint{position:absolute;right:10px;bottom:10px;font-size:11.5px;color:var(--ink-2);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 8px;pointer-events:none}
+.stage-btn{position:absolute;right:10px;top:10px;font:600 12px var(--f-body);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
+.stage-btn:hover{border-color:var(--accent)}
+.stage-fallback{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;color:var(--ink-2)}
+
+/* timeline */
+.timeline{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+.play{width:42px;height:42px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);cursor:pointer;display:grid;place-items:center}
+.play svg{width:16px;height:16px;fill:currentColor}
+.play:focus-visible,.tour button:focus-visible,.stage-btn:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+.slider-box{min-width:0}
+#day{width:100%;accent-color:var(--accent);margin:0}
+.ticks{display:grid;grid-template-columns:repeat(10,1fr);font:500 11px var(--f-num);color:var(--ink-3);margin-top:2px}
+.ticks span{text-align:center}
+.ticks span.on{color:var(--accent);font-weight:700}
+.ticks span.cut{color:var(--warn)}
+.day-read{text-align:right;min-width:9.5em}
+.day-read strong{display:block;font-family:var(--f-display);font-size:1.05rem}
+.day-read span{font-size:.78rem;color:var(--ink-3)}
+@media (max-width:560px){.timeline{grid-template-columns:auto minmax(0,1fr)}.day-read{grid-column:1/-1;text-align:left}}
+
+/* tour */
+.tour{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.tour button{width:100%;height:100%;text-align:left;display:flex;gap:9px;align-items:flex-start;font:500 13px/1.35 var(--f-body);color:var(--ink);
+  background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;cursor:pointer}
+.tour button:hover{border-color:var(--accent)}
+.tour button .n{font:700 13px var(--f-display);width:22px;height:22px;flex:none;border-radius:50%;display:grid;place-items:center;background:var(--accent-soft);color:var(--accent)}
+.tour button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tour button[aria-pressed="true"] .n{background:var(--accent-ink);color:var(--accent)}
+
+.info{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:6px}
+.info p{margin:0;max-width:72ch;color:var(--ink-2)}
+.info .figs{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:.88rem}
+.info .figs b{font-family:var(--f-num);font-weight:500;color:var(--ink)}
+
+/* readings panel */
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;display:grid}
+.panel>section{padding:14px 16px;border-top:1px solid var(--line);display:grid;gap:8px;min-width:0}
+.panel>section:first-child{border-top:0}
+.day-head{display:flex!important;justify-content:space-between;align-items:flex-end;gap:10px}
+.kind{display:inline-flex;align-items:center;gap:6px;font-size:.75rem;font-weight:600;border-radius:999px;padding:2px 9px;background:var(--accent-soft);color:var(--accent)}
+.kind.fc{background:var(--panel-2);color:var(--ink-2)}
+.dayno{font:600 .82rem var(--f-num);color:var(--ink-3)}
+.sec-h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+
+.balance{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:3px 8px;margin:0;font-size:.9rem;align-items:baseline}
+.balance dt{display:contents}
+.balance .op{font-family:var(--f-num);color:var(--ink-3);width:1em;text-align:center}
+.balance .lb{color:var(--ink-2)}
+.balance .v{font-family:var(--f-num);font-variant-numeric:tabular-nums;text-align:right}
+.balance .sum{border-top:1px solid var(--line);padding-top:3px;font-weight:600}
+.balance .sum.v{color:var(--ink)}
+.sw{display:inline-block;width:10px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.verdict{margin:0;font-size:.86rem;padding:8px 10px;border-radius:8px;background:var(--panel-2);color:var(--ink-2)}
+.verdict strong{color:var(--ink)}
+
+.gauge{position:relative;height:34px;margin-top:4px}
+.gauge .track{position:absolute;left:0;right:0;top:12px;height:10px;border-radius:5px;background:var(--panel-2);border:1px solid var(--line)}
+.gauge .fill{position:absolute;left:0;top:12px;height:10px;border-radius:5px;background:var(--water);transition:width .4s ease}
+.gauge .mk{position:absolute;top:6px;width:2px;height:22px;transform:translateX(-1px)}
+.gauge .mk.crit{background:var(--crit)} .gauge .mk.warn{background:var(--warn)} .gauge .mk.good{background:var(--good)}
+.gauge-legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:.76rem;color:var(--ink-2)}
+.gauge-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;vertical-align:middle}
+.big{font:600 1.5rem var(--f-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.delta{font:500 .82rem var(--f-num);color:var(--ink-2)}
+
+.gates{display:grid;gap:4px;font-size:.84rem}
+.gates .grp{font-size:.74rem;font-weight:600;color:var(--ink-3);letter-spacing:.04em;margin-top:4px}
+.gate{display:grid;grid-template-columns:minmax(0,1fr) 64px 3.2em;gap:8px;align-items:center}
+.gate .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
+.gate .bar{height:6px;border-radius:3px;background:var(--panel-2);overflow:hidden}
+.gate .bar i{display:block;height:100%;background:var(--s-arrive);border-radius:3px;transition:width .4s ease}
+.gate .v{font-family:var(--f-num);text-align:right}
+.gate.cut .v{color:var(--warn)}
+
+.stations{width:100%;border-collapse:collapse;font-size:.84rem}
+.stations th{font-weight:500;color:var(--ink-3);text-align:right;padding:2px 4px;font-size:.74rem}
+.stations th:first-child,.stations td:first-child{text-align:left}
+.stations td{padding:5px 4px;border-top:1px solid var(--line);text-align:right;font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.stations td:first-child{font-family:var(--f-body)}
+.stations td:first-child b{font-family:var(--f-num);font-weight:500}
+.stations td:last-child{text-align:right}
+.pill{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:1px 8px;font:600 .72rem var(--f-body);white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.pill.good{background:var(--good-bg);color:var(--good)} .pill.warn{background:var(--warn-bg);color:var(--warn)} .pill.crit{background:var(--crit-bg);color:var(--crit)}
+
+/* charts */
+.charts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+@media (max-width:820px){.charts{grid-template-columns:minmax(0,1fr)}}
+figure.chart{margin:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:6px;min-width:0}
+figure.chart figcaption{display:grid;gap:4px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.8rem;color:var(--ink-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px}
+.plot{position:relative}
+.plot svg{display:block;width:100%;height:auto;overflow:visible}
+.plot .grid{stroke:var(--line);stroke-width:1}
+.plot .axis-t{fill:var(--ink-3);font:11px var(--f-num)}
+.plot .lbl{font:600 11.5px var(--f-body);fill:var(--ink-2)}
+.plot .ser{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.plot .cursor{stroke:var(--ink-3);stroke-width:1;stroke-dasharray:3 3}
+.plot .hit{fill:transparent;cursor:pointer}
+.plot .thr{stroke-width:1.2;stroke-dasharray:5 4}
+.plot .cutband{fill:var(--panel-2)}
+.tip{position:absolute;top:0;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;line-height:1.45;border-radius:6px;padding:6px 9px;white-space:nowrap;transform:translate(-50%,-4px);z-index:2}
+.tip b{font-family:var(--f-num);font-weight:500}
+.tip i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px}
+
+details.data{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+details.data summary{cursor:pointer;font-family:var(--f-display);font-weight:600}
+.table-scroll{overflow-x:auto;margin-top:10px}
+.full{border-collapse:collapse;font-size:.82rem;min-width:860px;width:100%}
+.full th,.full td{padding:5px 8px;border-top:1px solid var(--line);text-align:right;white-space:nowrap}
+.full td{font-family:var(--f-num);font-variant-numeric:tabular-nums}
+.full th:first-child{text-align:left;font-weight:500;color:var(--ink-2)}
+.full thead th{color:var(--ink-3);font-weight:500;border-top:0}
+.full tr.grp th{color:var(--accent);font-weight:600;padding-top:10px}
+
+footer.src{font-size:.8rem;color:var(--ink-3);max-width:100ch;display:grid;gap:4px}
+footer.src p{margin:0}
+
+@media (prefers-reduced-motion: reduce){.gauge .fill,.gate .bar i{transition:none}}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="eyebrow">แผนการระบายน้ำเขื่อนเจ้าพระยา · 16–25 ต.ค. 2569</div>
+      <h1>แผนระบายเจ้าพระยา 3 มิติ</h1>
+      <p class="lede">น้ำเหนือไหลมาถึงหน้าเขื่อน ถูกผันเข้าระบบชลประทาน ส่วนที่เหลือระบายลงท้ายน้ำ ผ่านเขตน้ำขึ้นลงจนถึงสะพานพระราม 8 เลื่อนวันที่เพื่อดูระดับน้ำและอัตราการไหลตามแผน หรือกดขั้นตอน 1–6 เพื่อดูทีละจุด</p>
+    </div>
+    <div class="stamp">ข้อมูล ณ 16 ต.ค. 2569 · 14:40 น.</div>
+  </header>
+
+  <div class="layout">
+    <div class="main-col">
+      <div class="stage" id="stage">
+        <div class="tags" id="tags"></div>
+        <div class="stage-note">ภาพแผนผัง ไม่ตามมาตราส่วน · ขยายความสูง</div>
+        <button class="stage-btn" id="resetView" type="button">มุมมองรวม</button>
+        <div class="stage-hint" id="hint">ลากเพื่อหมุน · เลื่อนหรือบีบเพื่อซูม</div>
+      </div>
+
+      <div class="timeline">
+        <button class="play" id="play" type="button" aria-label="เล่นแผน 10 วัน">
+          <svg viewBox="0 0 16 16" id="playIcon"><path d="M4 2.5v11l9-5.5z"/></svg>
+        </button>
+        <div class="slider-box">
+          <label for="day" class="unit" style="display:block">วันที่ (ค่าระดับน้ำ 06:00 น.)</label>
+          <input type="range" id="day" min="0" max="9" step="1" value="0">
+          <div class="ticks" id="ticks"></div>
+        </div>
+        <div class="day-read"><strong id="dayShort">16 ต.ค.</strong><span id="daySub">วันนี้ · ค่าตรวจวัด</span></div>
+      </div>
+
+      <ol class="tour" id="tour"></ol>
+
+      <div class="info" id="info" aria-live="polite"></div>
+    </div>
+
+    <aside class="panel" aria-label="ค่าประจำวัน">
+      <section class="day-head">
+        <div>
+          <span class="kind" id="kind">ค่าปัจจุบัน</span>
+          <h2 id="dayTitle" style="margin-top:6px">ศุกร์ 16 ต.ค. 2569</h2>
+        </div>
+        <span class="dayno" id="dayNo">Day 0</span>
+      </section>
+
+      <section>
+        <div class="sec-h"><h3>สมดุลน้ำหน้าเขื่อน</h3><span class="unit">ลบ.ม./วินาที</span></div>
+        <dl class="balance" id="balance"></dl>
+        <p class="verdict" id="verdict"></p>
+      </section>
+
+      <section>
+        <div class="sec-h"><h3>ระดับน้ำเหนือเขื่อน</h3><span class="unit">ม.รทก. · 06:00 น.</span></div>
+        <div><span class="big" id="poolV">+16.47</span> <span class="delta" id="poolD"></span></div>
+        <div class="gauge" id="gauge" aria-hidden="true">
+          <div class="track"></div><div class="fill" id="gaugeFill"></div>
+        </div>
+        <div class="gauge-legend">
+          <span><i style="background:var(--crit)"></i>สูงสุดที่ยอมรับ +16.80</span>
+          <span><i style="background:var(--warn)"></i>ควบคุม +16.00</span>
+          <span><i style="background:var(--good)"></i>เป้าหมาย +15.80</span>
+        </div>
+      </section>
+
+      <section>
+        <div class="sec-h"><h3>ผันเข้าระบบชลประทาน</h3><span class="unit num" id="divTot">481 ลบ.ม./วินาที</span></div>
+        <div class="gates" id="gates"></div>
+      </section>
+
+      <section>
+        <div class="sec-h"><h3>ระดับสูงสุดรายวัน ท้ายน้ำ</h3><span class="unit">ม.รทก.</span></div>
+        <table class="stations">
+          <thead><tr><th>จุดวัด</th><th>ระดับ</th><th>ตลิ่ง</th><th>ห่าง</th><th>สถานะ</th></tr></thead>
+          <tbody id="stRows"></tbody>
+        </table>
+        <p class="unit" style="margin:0">เฝ้าระวังเมื่อสูงกว่าตลิ่ง − 0.30 ม. · พระราม 8 เทียบระดับเตือนภัย +2.55</p>
+      </section>
+    </aside>
+  </div>
+
+  <div class="charts">
+    <figure class="chart">
+      <figcaption>
+        <h3>อัตราการไหลที่หน้าเขื่อน <span class="unit">ลบ.ม./วินาที · ค่ารายวัน 06:00 น.</span></h3>
+        <div class="legend">
+          <span><i style="background:var(--s-arrive)"></i>น้ำไหลมาถึงหน้าเขื่อน</span>
+          <span><i style="background:var(--s-net)"></i>น้ำไหลเข้าสุทธิ (หักผันน้ำ)</span>
+          <span><i style="background:var(--s-release)"></i>แผนระบายท้ายเขื่อน</span>
+        </div>
+      </figcaption>
+      <div class="plot" id="flowChart"></div>
+    </figure>
+    <figure class="chart">
+      <figcaption>
+        <h3>ระดับน้ำเหนือเขื่อนตามแผน <span class="unit">ม.รทก. · 06:00 น.</span></h3>
+        <div class="legend"><span>เส้นประ = เกณฑ์ควบคุม · คลิกกราฟเพื่อเลือกวัน</span></div>
+      </figcaption>
+      <div class="plot" id="poolChart"></div>
+    </figure>
+  </div>
+
+  <details class="data">
+    <summary>ตารางข้อมูลทั้งหมด 16–25 ต.ค. 2569</summary>
+    <div class="table-scroll"><table class="full" id="fullTable"></table></div>
+  </details>
+
+  <footer class="src">
+    <p>ที่มาของตัวเลข: เอกสาร “แผนการระบายน้ำเขื่อนเจ้าพระยา 16 ต.ค. 2569” ส่วนบริหารจัดการน้ำ สำนักบริหารจัดการน้ำและอุทกวิทยา กรมชลประทาน (แบบจำลองแผนการระบายเขื่อนเจ้าพระยา V21 และแบบจำลองเขตน้ำขึ้นลง V21 · บันทึก 16 ต.ค. 2569 15:13 น.) หน้านี้จัดทำเพื่ออธิบายเอกสารดังกล่าว ไม่ใช่ประกาศของหน่วยงาน</p>
+    <p>ภาพ 3 มิติเป็นแผนผัง ระยะทางย่อและความสูงขยาย ระดับน้ำท้ายเขื่อนในภาพและอัตราการไหลรายวันของแม่น้ำป่าสัก (เอกสารระบุ 440 → 350 ลบ.ม./วินาที) เป็นค่าประมาณเพื่อแสดงภาพเท่านั้น จุดลอยน้ำแสดงความหนาแน่นตามอัตราการไหล (คลองชลประทานใช้มาตราส่วนขยาย 6 เท่า)</p>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+(function(){
+"use strict";
+
+/* ---------------- data (from the PDF) ---------------- */
+const DATE = [16,17,18,19,20,21,22,23,24,25];
+const WD_S = ['ศ.','ส.','อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.','อา.'];
+const WD_L = ['ศุกร์','เสาร์','อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์','อาทิตย์'];
+const D = {
+  release:[1800,1800,1800,1800,1800,1700,1700,1600,1500,1400],
+  arrive:[2280,2341,2379,2318,2210,2076,1926,1811,1755,1720],
+  net:[1799,1865,1903,1842,1734,1657,1532,1477,1421,1386],
+  div:[481,476,476,476,476,419,394,334,334,334],
+  pool:[16.47,16.54,16.65,16.70,16.63,16.54,16.31,16.10,15.96,15.91],
+  rama8:[1.94,1.86,1.81,1.79,1.81,1.82,1.80,1.76,1.68,1.63],
+  rama8t:['11:00','12:00','13:00','15:00','16:00','17:00','17:00','17:00','17:00','18:00'],
+  tide:[0.99,0.95,0.91,0.89,0.93,0.96,0.96,0.92,0.87,0.84],
+  pasak:Array.from({length:10},(_,i)=>Math.round(440-90*i/9)) // approximation between 440 and 350 for the visual only
+};
+const POOL_MAX=16.80, POOL_CTRL=16.00, POOL_TGT=15.80, R8_WARN=2.55, R8_BANK=3.25;
+const GATES = [
+  {id:'manorom',   name:'ปตร.มโนรมย์',            side:-1, s:0.130, hw:1.0, q:[145,145,145,145,145,120,100,80,80,80], pts:[[0,0],[1,7],[4,18],[12,30],[22,44]]},
+  {id:'maharaj',   name:'ปตร.มหาราช',             side:-1, s:0.236, hw:0.75,q:[55,55,55,55,55,55,50,50,50,50],       pts:[[0,0],[3,5],[10,10],[22,15],[40,19]]},
+  {id:'phonlathep',name:'ปตร.พลเทพ',              side: 1, s:0.160, hw:0.8, q:[75,75,75,75,75,70,70,50,50,50],       pts:[[0,0],[0,7],[-2,18],[2,30],[8,44]]},
+  {id:'uthong',    name:'ปตร.มะขามเฒ่า-อู่ทอง',    side: 1, s:0.192, hw:0.5, q:[18,17,17,17,17,10,10,10,10,10],       pts:[[0,0],[2,6],[8,14],[16,24],[24,36]]},
+  {id:'krasiao',   name:'ปตร.มะขามเฒ่า-กระเสียว',  side: 1, s:0.206, hw:0.45,q:[9,9,9,9,9,9,9,9,9,9],                 pts:[[0,0],[3,6],[12,11],[24,19],[36,26]]},
+  {id:'others',    name:'คลองย่อย / อื่น ๆ',        side: 1, s:0.224, hw:0.45,q:[58,55,55,55,55,55,55,55,55,55],       pts:[[0,0],[2,3.5],[6,6],[11,8]]},
+  {id:'boromathat',name:'ปตร.บรมธาตุ',            side: 1, s:0.240, hw:1.0, q:[121,120,120,120,120,100,100,80,80,80], pts:[[0,0],[3,5],[10,9],[22,13],[38,16]]}
+];
+const STATIONS = [
+  {id:'c29b',code:'C.29B',name:'สามโคก',       bank:3.00,s:0.640,lv:[2.63,2.54,2.47,2.45,2.41,2.37,2.30,2.26,2.18,2.11]},
+  {id:'c38', code:'C.38', name:'เมืองปทุมธานี',bank:3.45,s:0.710,lv:[2.36,2.28,2.23,2.21,2.20,2.17,2.11,2.07,1.99,1.93]},
+  {id:'c22a',code:'C.22A',name:'ปากเกร็ด',     bank:2.90,s:0.790,lv:[2.15,2.11,2.10,2.11,2.13,2.14,2.12,2.09,2.03,1.98]},
+  {id:'c12', code:'C.12', name:'สามเสน',       bank:3.25,s:0.862,lv:[1.94,1.86,1.81,1.79,1.81,1.82,1.80,1.76,1.68,1.63]}
+];
+const S_DAM=0.25, S_JOIN=0.52, S_R8=0.885;
+
+/* ---------------- helpers ---------------- */
+const fmt = n => Math.round(n).toLocaleString('en-US');
+const lvl = v => (v>=0?'+':'−')+Math.abs(v).toFixed(2);
+const sgn = v => (v>0?'+':v<0?'−':'±')+fmt(Math.abs(v));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const smooth=(a,b,x)=>{const t=clamp((x-a)/(b-a),0,1);return t*t*(3-2*t)};
+const lerpArr=(arr,f)=>{const i=Math.min(Math.floor(f),arr.length-2),t=clamp(f-i,0,1);return arr[i]*(1-t)+arr[i+1]*t};
+function pw(k,s){if(s<=k[0][0])return k[0][1];for(let i=1;i<k.length;i++){if(s<=k[i][0]){const a=k[i-1],b=k[i];return a[1]+(b[1]-a[1])*(s-a[0])/(b[0]-a[0]);}}return k[k.length-1][1];}
+function stStatus(v,bank){if(v>=bank)return['crit','ล้นตลิ่ง'];if(v>=bank-0.30)return['warn','เฝ้าระวัง'];return['good','ปกติ'];}
+function r8Status(v){if(v>=R8_BANK)return['crit','ล้นตลิ่ง'];if(v>=R8_WARN)return['warn','เตือนภัย'];return['good','ปกติ'];}
+const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ---------------- explanations ---------------- */
+const INFO = {
+  overview:{t:'ภาพรวมเส้นทางน้ำ', p:'น้ำเหนือจากนครสวรรค์ไหลมาถึงหน้าเขื่อนเจ้าพระยา ส่วนหนึ่งถูกผันเข้าระบบชลประทานทั้งฝั่งตะวันออกและตะวันตก ที่เหลือคือน้ำไหลเข้าสุทธิ เขื่อนระบายน้ำลงท้ายน้ำตามแผน น้ำไหลรวมกับแม่น้ำป่าสักที่อยุธยา ผ่านเขตน้ำขึ้นลงตั้งแต่ปทุมธานีจนถึงสะพานพระราม 8 แล้วออกทะเลที่สันดอน',
+    figs:d=>[['ระบาย',fmt(D.release[d])+' ลบ.ม./วิ'],['ระดับเหนือเขื่อน',lvl(D.pool[d])],['พระราม 8',lvl(D.rama8[d])]]},
+  north:{t:'1 · น้ำเหนือไหลมาถึงหน้าเขื่อน', p:'น้ำที่มาถึงหน้าเขื่อนคิดจากสถานี C.2 นครสวรรค์ (เดินทางราว 12 ชม.) รวมกับแม่น้ำสะแกกรัง (ราว 6 ชม.) และน้ำด้านข้าง วันที่ 16 ต.ค. C.2 วัดได้ 1,651 ลบ.ม./วินาที และคาดว่าจะลดลงเหลือ 1,306–1,470 ลบ.ม./วินาที น้ำที่มาถึงหน้าเขื่อนจึงลดจาก 2,280 เหลือ 1,720 ลบ.ม./วินาทีในวันที่ 25 ต.ค.',
+    figs:d=>[['น้ำไหลมาถึงหน้าเขื่อน',fmt(D.arrive[d])+' ลบ.ม./วิ']]},
+  canals:{t:'2 · ผันน้ำเข้าระบบชลประทาน', p:'ประตูระบายน้ำ (ปตร.) เหนือเขื่อนรับน้ำเข้าคลองส่งน้ำ ฝั่งตะวันออก (ฝั่งซ้าย) คือมโนรมย์และมหาราช ฝั่งตะวันตก (ฝั่งขวา) คือพลเทพ บรมธาตุ มะขามเฒ่า-อู่ทอง มะขามเฒ่า-กระเสียว และคลองย่อย น้ำส่วนนี้ไม่ไหลผ่านเขื่อน จึงหักออกจากน้ำที่มาถึง ได้เป็นน้ำไหลเข้าสุทธิ แผนคือทยอยลดการรับน้ำจาก 481 เหลือ 334 ลบ.ม./วินาที',
+    figs:d=>[['ผันรวม',fmt(D.div[d])+' ลบ.ม./วิ'],['น้ำไหลเข้าสุทธิ',fmt(D.net[d])+' ลบ.ม./วิ']]},
+  dam:{t:'3 · เขื่อนเจ้าพระยา และระดับน้ำเหนือเขื่อน', p:'ระดับเหนือเขื่อนขึ้นกับสมดุลระหว่างน้ำไหลเข้าสุทธิกับน้ำที่ระบาย ถ้าน้ำเข้ามากกว่าที่ระบาย น้ำจะสะสมและระดับสูงขึ้น ถ้าน้อยกว่า ระดับจะลดลง แผนคงระบาย 1,800 ลบ.ม./วินาทีถึง 20 ต.ค. แล้วทยอยลดเป็น 1,700 → 1,600 → 1,500 → 1,400 แม้ลดการระบาย ระดับก็ยังลดลง เพราะน้ำเข้าสุทธิลดลงเร็วกว่า (1,657 → 1,386) ระดับจึงลงจาก +16.47 สู่ราว +15.9 ม.รทก. เพิ่มพื้นที่ว่างรองรับฝนที่อาจตกเพิ่ม',
+    figs:d=>[['ระบาย',fmt(D.release[d])+' ลบ.ม./วิ'],['ระดับเหนือเขื่อน',lvl(D.pool[d])+' ม.รทก.'],['ส่วนต่างสุทธิ − ระบาย',sgn(D.net[d]-D.release[d])]]},
+  down:{t:'4 · ท้ายเขื่อน และแม่น้ำป่าสัก', p:'น้ำที่ระบายจากเขื่อนไหลลงลุ่มเจ้าพระยาตอนล่าง แล้วรวมกับแม่น้ำป่าสักที่อยุธยา เขื่อนพระรามหกระบายแม่น้ำป่าสักลดลงจากราว 440 เหลือ 350 ลบ.ม./วินาทีในช่วงเดียวกัน',
+    figs:d=>[['ระบายท้ายเขื่อน',fmt(D.release[d])+' ลบ.ม./วิ'],['ป่าสัก (ประมาณ)','~'+fmt(D.pasak[d])+' ลบ.ม./วิ']]},
+  tidal:{t:'5 · เขตน้ำขึ้นลง C.29B – C.12', p:'ตั้งแต่ปทุมธานีลงไป ระดับน้ำสูงสุดแต่ละวันขึ้นกับทั้งน้ำจากทางเหนือและน้ำทะเลหนุน ทุกจุดต่ำกว่าตลิ่งตลอด 16–25 ต.ค. จุดที่ใกล้ตลิ่งที่สุดคือ C.29B สามโคก (ห่าง 0.37 ม. วันที่ 16 ต.ค.) หลังลดการระบายตั้งแต่ 21 ต.ค. ระดับ C.29B–C.22A ลดลงตามลำดับ',
+    figs:d=>STATIONS.slice(0,3).map(s=>[s.code,lvl(s.lv[d])])},
+  rama8:{t:'6 · สะพานพระราม 8 และสันดอน', p:'สะพานพระราม 8 อยู่ท้ายน้ำ C.12 สามเสนราว 3 กม. ระดับสูงสุด +1.94 ม.รทก. (16 ต.ค.) ต่ำกว่าระดับเตือนภัย +2.55 และต่ำกว่าตลิ่งวิกฤต +3.25 อยู่ 1.31 ม. ปริมาณน้ำที่ระบายจึงไม่ส่งผลกระทบพื้นที่ กทม. ที่สันดอน (ปากแม่น้ำ) น้ำขึ้นสูงสุดรายวันอยู่ระหว่าง +0.84 ถึง +0.99 ม.รทก.',
+    figs:d=>[['พระราม 8',lvl(D.rama8[d])+' (เวลา '+D.rama8t[d]+' น.)'],['ห่างตลิ่งวิกฤต',(R8_BANK-D.rama8[d]).toFixed(2)+' ม.'],['สันดอน',lvl(D.tide[d])]]}
+};
+const TOUR = [
+  {id:'north', label:'น้ำเหนือไหลมาถึง'},
+  {id:'canals',label:'ผันเข้าระบบชลประทาน'},
+  {id:'dam',   label:'เขื่อนและระดับเหนือเขื่อน'},
+  {id:'down',  label:'ท้ายเขื่อนและป่าสัก'},
+  {id:'tidal', label:'เขตน้ำขึ้นลง'},
+  {id:'rama8', label:'พระราม 8 และสันดอน'}
+];
+
+/* ---------------- state ---------------- */
+const state = {day:0, dayF:0, focus:'overview', playing:false};
+let scene3d = null; // set when WebGL is ready
+const listeners = [];
+
+/* ---------------- UI: timeline ---------------- */
+const $ = id => document.getElementById(id);
+const slider=$('day');
+$('ticks').innerHTML = DATE.map((d,i)=>`<span data-i="${i}" class="${D.release[i]!==D.release[Math.max(0,i-1)]?'cut':''}">${d}</span>`).join('');
+slider.addEventListener('input',()=>setDay(+slider.value,true));
+let playTimer=null;
+function setPlaying(on){
+  state.playing=on;
+  $('playIcon').innerHTML = on ? '<path d="M4 2.5h3v11H4zM9 2.5h3v11H9z"/>' : '<path d="M4 2.5v11l9-5.5z"/>';
+  $('play').setAttribute('aria-label', on?'หยุด':'เล่นแผน 10 วัน');
+  clearInterval(playTimer);
+  if(on){
+    if(state.day>=9) setDay(0);
+    playTimer=setInterval(()=>{ if(state.day>=9){setPlaying(false);return;} setDay(state.day+1); },1500);
+  }
+}
+$('play').addEventListener('click',()=>setPlaying(!state.playing));
+
+/* tour */
+$('tour').innerHTML = TOUR.map((t,i)=>`<li><button type="button" data-id="${t.id}" aria-pressed="false"><span class="n">${i+1}</span><span>${t.label}</span></button></li>`).join('');
+$('tour').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setFocus(b.dataset.id,true);});
+$('resetView').addEventListener('click',()=>setFocus('overview',true));
+
+function setFocus(id,moveCam){
+  state.focus=id;
+  document.querySelectorAll('#tour button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.id===id)));
+  renderInfo();
+  if(scene3d){ scene3d.highlight(id); if(moveCam) scene3d.fly(id); }
+}
+function renderInfo(){
+  const it=INFO[state.focus]||INFO.overview, d=state.day;
+  $('info').innerHTML = `<h3>${it.t}</h3><p>${it.p}</p><div class="figs">${it.figs(d).map(([k,v])=>`<span>${k} <b>${v}</b></span>`).join('')}</div>`;
+}
+
+/* ---------------- readings panel ---------------- */
+function renderPanel(){
+  const d=state.day, today=d===0;
+  const k=$('kind'); k.textContent= today?'ค่าปัจจุบัน · ตรวจวัด 06:00 น.':'ค่าคาดการณ์ตามแผน'; k.classList.toggle('fc',!today);
+  $('dayTitle').textContent=`${WD_L[d]} ${DATE[d]} ต.ค. 2569`;
+  $('dayNo').textContent='Day '+d;
+  $('dayShort').textContent=`${WD_S[d]} ${DATE[d]} ต.ค.`;
+  $('daySub').textContent= today?'วันนี้ · ค่าตรวจวัด':'คาดการณ์ Day '+d;
+  document.querySelectorAll('#ticks span').forEach(s=>s.classList.toggle('on',+s.dataset.i===d));
+  slider.value=d;
+  slider.setAttribute('aria-valuetext',`${DATE[d]} ตุลาคม 2569`);
+
+  const diff=D.net[d]-D.release[d];
+  $('balance').innerHTML=`
+    <dt><span class="op"></span><span class="lb"><span class="sw" style="background:var(--s-arrive)"></span>น้ำไหลมาถึงหน้าเขื่อน</span></dt><dd class="v" style="margin:0">${fmt(D.arrive[d])}</dd>
+    <dt><span class="op">−</span><span class="lb">ผันเข้าระบบชลประทาน</span></dt><dd class="v" style="margin:0">${fmt(D.div[d])}</dd>
+    <dt><span class="op sum">=</span><span class="lb sum"><span class="sw" style="background:var(--s-net)"></span>น้ำไหลเข้าสุทธิ</span></dt><dd class="v sum" style="margin:0">${fmt(D.net[d])}</dd>
+    <dt><span class="op"></span><span class="lb"><span class="sw" style="background:var(--s-release)"></span>แผนระบายท้ายเขื่อน</span></dt><dd class="v" style="margin:0">${fmt(D.release[d])}</dd>
+    <dt><span class="op"></span><span class="lb">ส่วนต่าง (สุทธิ − ระบาย)</span></dt><dd class="v" style="margin:0">${sgn(diff)}</dd>`;
+  let msg = diff>30 ? '<strong>น้ำเข้ามากกว่าที่ระบาย</strong> น้ำสะสมหน้าเขื่อน' : diff<-30 ? '<strong>ระบายมากกว่าน้ำเข้า</strong> น้ำหน้าเขื่อนพร่องลง' : '<strong>ใกล้สมดุล</strong> น้ำเข้าเท่ากับที่ระบายโดยประมาณ';
+  if(d<9){const ch=D.pool[d+1]-D.pool[d]; msg+=` · ระดับ 06:00 น. วันถัดไป ${lvl(D.pool[d+1])} (${ch>=0?'+':'−'}${Math.abs(ch).toFixed(2)} ม.)`;}
+  else msg+=' · สิ้นสุดช่วงคาดการณ์ ระดับเข้าใกล้เป้าหมาย +15.80';
+  $('verdict').innerHTML=msg+'<br><span class="unit">ค่ารายวันเป็นค่า 06:00 น. แบบจำลองคำนวณรายชั่วโมง ทิศทางระดับจึงอาจไม่ตรงกับส่วนต่างทุกวัน</span>';
+
+  $('poolV').textContent=lvl(D.pool[d]);
+  const pd=D.pool[d]-D.pool[0];
+  $('poolD').textContent= d===0 ? 'สูงกว่าเป้าหมาย '+(D.pool[0]-POOL_TGT).toFixed(2)+' ม.' : `เทียบวันนี้ ${pd>=0?'+':'−'}${Math.abs(pd).toFixed(2)} ม.`;
+  const gx=v=>((v-15.5)/(17.0-15.5)*100).toFixed(2)+'%';
+  $('gaugeFill').style.width=gx(D.pool[d]);
+  if(!$('gauge').querySelector('.mk')){
+    $('gauge').insertAdjacentHTML('beforeend',`<span class="mk crit" style="left:${gx(POOL_MAX)}"></span><span class="mk warn" style="left:${gx(POOL_CTRL)}"></span><span class="mk good" style="left:${gx(POOL_TGT)}"></span>`);
+  }
+
+  $('divTot').textContent=fmt(D.div[d])+' ลบ.ม./วินาที';
+  const gRow=g=>`<div class="gate ${g.q[d]<g.q[0]?'cut':''}"><span class="nm" title="${g.name}">${g.name}</span><span class="bar"><i style="width:${(g.q[d]/145*100).toFixed(1)}%"></i></span><span class="v">${g.q[d]}</span></div>`;
+  $('gates').innerHTML=`<div class="grp">ฝั่งตะวันออก (ซ้าย)</div>${GATES.filter(g=>g.side<0).map(gRow).join('')}<div class="grp">ฝั่งตะวันตก (ขวา)</div>${GATES.filter(g=>g.side>0).map(gRow).join('')}`;
+
+  const rows=STATIONS.map(s=>{const v=s.lv[d],[c,l]=stStatus(v,s.bank);return `<tr><td><b>${s.code}</b> ${s.name}</td><td>${lvl(v)}</td><td>${lvl(s.bank)}</td><td>${(s.bank-v).toFixed(2)}</td><td><span class="pill ${c}">${l}</span></td></tr>`;});
+  const [rc,rl]=r8Status(D.rama8[d]);
+  rows.push(`<tr><td>พระราม 8 <span class="unit">${D.rama8t[d]} น.</span></td><td>${lvl(D.rama8[d])}</td><td>${lvl(R8_BANK)}</td><td>${(R8_BANK-D.rama8[d]).toFixed(2)}</td><td><span class="pill ${rc}">${rl}</span></td></tr>`);
+  rows.push(`<tr><td>สันดอน <span class="unit">น้ำขึ้นสูงสุด</span></td><td>${lvl(D.tide[d])}</td><td>–</td><td>–</td><td></td></tr>`);
+  $('stRows').innerHTML=rows.join('');
+}
+
+/* ---------------- charts ---------------- */
+const CW=640, CH=230, M={l:46,r:14,t:16,b:28};
+const cx=i=>M.l+i*(CW-M.l-M.r)/9;
+function chart(el,cfg){
+  const y=v=>M.t+(cfg.dom[1]-v)/(cfg.dom[1]-cfg.dom[0])*(CH-M.t-M.b);
+  let s=`<svg viewBox="0 0 ${CW} ${CH}" role="img" aria-label="${cfg.aria}">`;
+  // plan-cut band (release reduced from 21 Oct)
+  s+=`<rect class="cutband" x="${cx(4.5)}" y="${M.t}" width="${cx(9)-cx(4.5)+6}" height="${CH-M.t-M.b}"></rect>`;
+  s+=`<text class="axis-t" x="${cx(4.5)+5}" y="${M.t+11}">ลดการระบาย →</text>`;
+  cfg.ticks.forEach(t=>{s+=`<line class="grid" x1="${M.l}" x2="${CW-M.r}" y1="${y(t)}" y2="${y(t)}"></line><text class="axis-t" x="${M.l-6}" y="${y(t)+4}" text-anchor="end">${cfg.tf(t)}</text>`;});
+  DATE.forEach((d,i)=>{s+=`<text class="axis-t" x="${cx(i)}" y="${CH-8}" text-anchor="middle">${d}${i===0?' ต.ค.':''}</text>`;});
+  (cfg.thr||[]).forEach(t=>{s+=`<line class="thr" style="stroke:var(--${t.c})" x1="${M.l}" x2="${CW-M.r}" y1="${y(t.v)}" y2="${y(t.v)}"></line><text class="axis-t" style="fill:var(--${t.c})" x="${CW-M.r}" y="${y(t.v)-4}" text-anchor="end">${t.l}</text>`;});
+  cfg.series.forEach(se=>{
+    s+=`<path class="ser" style="stroke:var(${se.c})" d="${se.v.map((v,i)=>(i?'L':'M')+cx(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ')}"></path>`;
+    s+=`<circle cx="${cx(9)}" cy="${y(se.v[9])}" r="4" style="fill:var(${se.c});stroke:var(--panel);stroke-width:2"></circle>`;
+  });
+  (cfg.labels||[]).forEach(l=>{s+=`<text class="lbl" x="${cx(l.i)}" y="${y(l.v)+l.dy}" text-anchor="middle">${l.t}</text>`;});
+  s+=`<g class="cur"><line class="cursor" y1="${M.t}" y2="${CH-M.b}"></line>${cfg.series.map(se=>`<circle r="5" style="fill:var(${se.c});stroke:var(--panel);stroke-width:2"></circle>`).join('')}</g>`;
+  DATE.forEach((d,i)=>{const w=(CW-M.l-M.r)/9;s+=`<rect class="hit" data-i="${i}" x="${cx(i)-w/2}" y="0" width="${w}" height="${CH}"></rect>`;});
+  s+='</svg><div class="tip" hidden></div>';
+  el.innerHTML=s;
+  const svg=el.querySelector('svg'), tip=el.querySelector('.tip'), cur=el.querySelector('.cur');
+  function place(i){
+    cur.querySelector('line').setAttribute('x1',cx(i));cur.querySelector('line').setAttribute('x2',cx(i));
+    cur.querySelectorAll('circle').forEach((c,k)=>{c.setAttribute('cx',cx(i));c.setAttribute('cy',y(cfg.series[k].v[i]));});
+  }
+  el.addEventListener('mousemove',e=>{
+    const r=e.target.closest&&e.target.closest('.hit'); if(!r){tip.hidden=true;return;}
+    const i=+r.dataset.i;
+    tip.innerHTML=`<div>${WD_S[i]} ${DATE[i]} ต.ค.</div>`+cfg.series.map(se=>`<div><i style="background:var(${se.c})"></i>${se.n} <b>${cfg.vf(se.v[i])}</b></div>`).join('');
+    tip.hidden=false;
+    const bw=svg.getBoundingClientRect().width;
+    const px=cx(i)/CW*bw;
+    tip.style.left=clamp(px,70,bw-70)+'px';
+    tip.style.top=(-tip.offsetHeight)+'px';
+  });
+  el.addEventListener('mouseleave',()=>{tip.hidden=true;});
+  el.addEventListener('click',e=>{const r=e.target.closest&&e.target.closest('.hit');if(r)setDay(+r.dataset.i,true);});
+  return {place};
+}
+const flowC=chart($('flowChart'),{
+  aria:'กราฟอัตราการไหล น้ำไหลมาถึง น้ำสุทธิ และแผนระบาย 16 ถึง 25 ตุลาคม',
+  dom:[1200,2500],ticks:[1200,1600,2000,2400],tf:fmt,vf:fmt,
+  series:[{n:'มาถึงหน้าเขื่อน',c:'--s-arrive',v:D.arrive},{n:'สุทธิ',c:'--s-net',v:D.net},{n:'ระบาย',c:'--s-release',v:D.release}],
+  labels:[{i:1.6,v:D.arrive[2],dy:-10,t:'มาถึง'},{i:2,v:D.net[2],dy:-10,t:'สุทธิ'},{i:2,v:1800,dy:17,t:'ระบาย'}]
+});
+const poolC=chart($('poolChart'),{
+  aria:'กราฟระดับน้ำเหนือเขื่อนตามแผน 16 ถึง 25 ตุลาคม',
+  dom:[15.6,17.0],ticks:[15.6,16.0,16.4,16.8],tf:v=>v.toFixed(1),vf:v=>lvl(v),
+  thr:[{v:POOL_MAX,c:'crit',l:'สูงสุดที่ยอมรับ +16.80'},{v:POOL_CTRL,c:'warn',l:'ควบคุม +16.00'},{v:POOL_TGT,c:'good',l:'เป้าหมาย +15.80'}],
+  series:[{n:'ระดับเหนือเขื่อน',c:'--accent',v:D.pool}]
+});
+
+/* full table */
+(function(){
+  const head=`<thead><tr><th>รายการ</th>${DATE.map((d,i)=>`<th>${WD_S[i]} ${d}</th>`).join('')}</tr></thead>`;
+  const row=(name,arr,f)=>`<tr><th>${name}</th>${arr.map(v=>`<td>${f(v)}</td>`).join('')}</tr>`;
+  const grp=t=>`<tr class="grp"><th colspan="11">${t}</th></tr>`;
+  $('fullTable').innerHTML=head+'<tbody>'+
+    grp('อัตราการไหล (ลบ.ม./วินาที)')+
+    row('น้ำไหลมาถึงหน้าเขื่อน',D.arrive,fmt)+row('ผันเข้าระบบชลประทานรวม',D.div,fmt)+row('น้ำไหลเข้าสุทธิ',D.net,fmt)+row('แผนระบายท้ายเขื่อน',D.release,fmt)+
+    grp('รับน้ำราย ปตร. (ลบ.ม./วินาที)')+GATES.map(g=>row(g.name+(g.side<0?' (ตะวันออก)':' (ตะวันตก)'),g.q,v=>v)).join('')+
+    grp('ระดับน้ำ (ม.รทก.)')+row('เหนือเขื่อน 06:00 น.',D.pool,lvl)+
+    STATIONS.map(s=>row(`${s.code} ${s.name} (ตลิ่ง ${lvl(s.bank)})`,s.lv,lvl)).join('')+
+    row('พระราม 8 สูงสุด (ตลิ่งวิกฤต +3.25)',D.rama8,lvl)+row('เวลาสูงสุด พระราม 8',D.rama8t,v=>v)+row('สันดอน น้ำขึ้นสูงสุด',D.tide,lvl)+
+    '</tbody>';
+})();
+
+function setDay(i,stopPlay){
+  i=clamp(i|0,0,9);
+  if(stopPlay&&state.playing) setPlaying(false);
+  state.day=i;
+  renderPanel(); renderInfo();
+  flowC.place(i); poolC.place(i);
+  if(scene3d) scene3d.dayChanged();
+  if(reduceMotion) state.dayF=i;
+}
+
+/* ---------------- 3D ---------------- */
+function init3D(){
+  const stage=$('stage');
+  if(typeof THREE==='undefined') throw new Error('three missing');
+  const renderer=new THREE.WebGLRenderer({antialias:true});
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+  stage.insertBefore(renderer.domElement,stage.firstChild);
+  const scene=new THREE.Scene();
+  const camera=new THREE.PerspectiveCamera(40,1,0.5,900);
+  const controls=new THREE.OrbitControls(camera,renderer.domElement);
+  controls.enableDamping=true; controls.dampingFactor=0.08;
+  controls.maxPolarAngle=Math.PI*0.47; controls.minDistance=8; controls.maxDistance=320;
+
+  const VS=0.7; // world units per metre (vertical exaggeration vs. compressed distance)
+  const V3=THREE.Vector3;
+
+  /* river path, north (−x) to sea (+x); +z = west bank, −z = east bank */
+  const ctrl=[[-96,-4],[-82,5],[-68,-3],[-54,3],[-41,0],[-28,-6],[-14,1],[0,-5],[14,4],[28,-1],[40,-8],[52,-1],[63,7],[74,2],[84,-5],[96,0]].map(([x,z])=>new V3(x,0,z));
+  const curve=new THREE.CatmullRomCurve3(ctrl,false,'centripetal');
+  const NS=480;
+  const widthAt=s=> s<=S_DAM ? 4.6+3.2*smooth(0.05,S_DAM,s) : 4.0+1.6*(s-S_DAM)/(1-S_DAM);
+  const bankAt=s=>pw([[0,18.2],[S_DAM,17.8],[S_DAM+0.03,17.0],[0.45,9.5],[0.55,6.0],[0.64,3.0],[0.71,3.45],[0.79,2.9],[0.862,3.25],[0.9,3.25],[1,1.7]],s);
+  const RS=[];
+  for(let i=0;i<=NS;i++){const s=i/NS,p=curve.getPointAt(s),t=curve.getTangentAt(s);RS.push({s,x:p.x,z:p.z,nx:-t.z,nz:t.x,tx:t.x,tz:t.z,hw:widthAt(s)/2});}
+  const sampleAt=s=>{const f=clamp(s,0,1)*NS,i=Math.min(Math.floor(f),NS-1),t=f-i,a=RS[i],b=RS[i+1];
+    return {x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t,nx:a.nx+(b.nx-a.nx)*t,nz:a.nz+(b.nz-a.nz)*t,tx:a.tx,tz:a.tz,hw:a.hw+(b.hw-a.hw)*t};};
+
+  /* water profile in metres for a fractional day */
+  function knots(f){
+    const rel=lerpArr(D.release,f), st=STATIONS.map(s=>lerpArr(s.lv,f));
+    return {pool:lerpArr(D.pool,f), k:[[S_DAM+0.004,9.0+(rel-1400)/800],[0.64,st[0]],[0.71,st[1]],[0.79,st[2]],[0.862,st[3]],[S_R8,lerpArr(D.rama8,f)],[1,lerpArr(D.tide,f)]]};
+  }
+  const waterAt=(s,K)=> s<=S_DAM ? K.pool : pw(K.k,s);
+  const KD=DATE.map((_,i)=>knots(i));
+  const bedS=RS.map(r=>Math.min(...KD.map(K=>waterAt(r.s,K)))-1.9);
+
+  /* tributaries */
+  function buildTrib(def,kind){
+    const b=sampleAt(def.s), side=def.side;
+    const sx=b.x+b.nx*side*(b.hw-0.4), sz=b.z+b.nz*side*(b.hw-0.4);
+    const pts=def.pts.map(([dx,dz])=>new V3(sx+dx,0,sz+side*dz));
+    const c=new THREE.CatmullRomCurve3(pts,false,'centripetal'), N=60, S=[];
+    for(let j=0;j<=N;j++){const u=j/N,p=c.getPointAt(u),t=c.getTangentAt(u);S.push({u,x:p.x,z:p.z,nx:-t.z,nz:t.x});}
+    let minx=1e9,maxx=-1e9,minz=1e9,maxz=-1e9;S.forEach(p=>{minx=Math.min(minx,p.x);maxx=Math.max(maxx,p.x);minz=Math.min(minz,p.z);maxz=Math.max(maxz,p.z);});
+    return {def,kind,S,len:c.getLength(),hw:def.hw,bb:[minx-4,maxx+4,minz-4,maxz+4]};
+  }
+  const canals=GATES.map(g=>buildTrib(g,'canal'));
+  const pasakDef={s:S_JOIN,side:-1,hw:1.7,pts:[[-26,44],[-17,31],[-9,17],[-3,6],[0,0]]};
+  const pasak=buildTrib(pasakDef,'river');
+  const tribs=canals.concat([pasak]);
+
+  /* land height from the river alone (metres) */
+  function nearestRiver(x,z){let bi=0,bd=1e18;for(let i=0;i<=NS;i+=2){const dx=x-RS[i].x,dz=z-RS[i].z,d=dx*dx+dz*dz;if(d<bd){bd=d;bi=i;}}
+    for(let i=Math.max(0,bi-2);i<=Math.min(NS,bi+2);i++){const dx=x-RS[i].x,dz=z-RS[i].z,d=dx*dx+dz*dz;if(d<bd){bd=d;bi=i;}}return [bi,Math.sqrt(bd)];}
+  const hash=(x,z)=>{const s=Math.sin(x*127.1+z*311.7)*43758.5453;return s-Math.floor(s);};
+  const sOfX=x=>{if(x<=RS[0].x)return 0;if(x>=RS[NS].x)return 1;let a=0,b=NS;while(b-a>1){const m=(a+b)>>1;if(RS[m].x<=x)a=m;else b=m;}return (a+(x-RS[a].x)/(RS[b].x-RS[a].x))/NS;};
+  function landRiver(x,z){
+    const [i,d]=nearestRiver(x,z), r=RS[i], w=r.hw;
+    let h=bankAt(sOfX(x))-0.35;
+    h+=0.35*(1-smooth(w+0.8,w+2.8,d));          // levee crest at bank level
+    const ch=1-smooth(w-0.3,w+1.0,d);
+    h=h*(1-ch)+bedS[i]*ch;
+    return {h,i,d};
+  }
+  tribs.forEach(T=>{
+    T.landS=T.S.map(p=>landRiver(p.x,p.z).h);
+    if(T.kind==='canal'){ T.water=(u,j,pool)=>Math.min(pool-0.35-1.4*u, T.landS[j]-0.45); T.bed=T.S.map((p,j)=>T.water(p.u,j,15.91)-0.8); }
+    else { T.water=(u,j,pool,K)=>Math.min(waterAt(S_JOIN,K)+2.4*(1-u), T.landS[j]-0.45); T.bed=T.S.map((p,j)=>Math.min(...KD.map(K=>T.water(p.u,j,0,K)))-1.3); }
+  });
+
+  /* terrain */
+  const LX0=-110,LX1=100,LZ=130,SEG_X=210,SEG_Z=130;
+  const landGeo=new THREE.PlaneGeometry(LX1-LX0,LZ,SEG_X,SEG_Z);
+  landGeo.rotateX(-Math.PI/2); landGeo.translate((LX0+LX1)/2,0,0);
+  const lp=landGeo.attributes.position, nV=lp.count;
+  const patch=new Float32Array(nV), near=new Float32Array(nV);
+  for(let v=0;v<nV;v++){
+    const x=lp.getX(v), z=lp.getZ(v);
+    const R=landRiver(x,z); let h=R.h, nf=1-smooth(RS[R.i].hw+0.5,RS[R.i].hw+4,R.d);
+    if(R.d>RS[R.i].hw+3) h+= (hash(Math.floor(x/7),Math.floor(z/7))-0.5)*0.12;
+    for(const T of tribs){
+      if(x<T.bb[0]||x>T.bb[1]||z<T.bb[2]||z>T.bb[3])continue;
+      let bj=0,bd=1e18;for(let j=0;j<T.S.length;j++){const dx=x-T.S[j].x,dz=z-T.S[j].z,d=dx*dx+dz*dz;if(d<bd){bd=d;bj=j;}}
+      const d=Math.sqrt(bd), ch=1-smooth(T.hw-0.1,T.hw+0.8,d);
+      if(ch>0) h=Math.min(h,h*(1-ch)+T.bed[bj]*ch);
+      nf=Math.max(nf,1-smooth(T.hw+0.3,T.hw+1.8,d));
+    }
+    h=h*(1-smooth(90,99,x))+(0.2)*smooth(90,99,x); // coast slopes into the sea
+    lp.setY(v,h*VS);
+    patch[v]=hash(Math.floor((x+3)/9),Math.floor((z+5)/6)); near[v]=nf;
+  }
+  landGeo.computeVertexNormals();
+  const landCol=new Float32Array(nV*3); landGeo.setAttribute('color',new THREE.BufferAttribute(landCol,3));
+  const landMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:1,metalness:0});
+  scene.add(new THREE.Mesh(landGeo,landMat));
+
+  /* water ribbons */
+  const waterMat=new THREE.MeshStandardMaterial({roughness:0.3,metalness:0.05,transparent:true,opacity:0.9});
+  function ribbon(n){
+    const pos=new Float32Array((n+1)*6), nor=new Float32Array((n+1)*6), idx=[];
+    for(let i=0;i<(n+1)*2;i++){nor[i*3+1]=1;}
+    for(let i=0;i<n;i++){const a=i*2;idx.push(a,a+2,a+1,a+1,a+2,a+3);}
+    const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.BufferAttribute(pos,3)); g.setAttribute('normal',new THREE.BufferAttribute(nor,3)); g.setIndex(idx);
+    const m=new THREE.Mesh(g,waterMat); m.frustumCulled=false; scene.add(m);
+    return {n,pos,g};
+  }
+  function setRib(R,get){
+    for(let i=0;i<=R.n;i++){const q=get(i),o=i*6;
+      R.pos[o]=q.x+q.nx*q.hw;R.pos[o+1]=q.y;R.pos[o+2]=q.z+q.nz*q.hw;
+      R.pos[o+3]=q.x-q.nx*q.hw;R.pos[o+4]=q.y;R.pos[o+5]=q.z-q.nz*q.hw;}
+    R.g.attributes.position.needsUpdate=true;
+  }
+  const riverRib=ribbon(NS);
+  tribs.forEach(T=>{T.rib=ribbon(T.S.length-1);});
+  const seaMat=new THREE.MeshStandardMaterial({roughness:0.35,metalness:0.05});
+  const sea=new THREE.Mesh(new THREE.PlaneGeometry(120,LZ+60).rotateX(-Math.PI/2),seaMat);
+  sea.position.set(152,0,0); scene.add(sea);
+
+  /* structures */
+  const concreteMat=new THREE.MeshStandardMaterial({roughness:0.85});
+  const steelMat=new THREE.MeshStandardMaterial({roughness:0.6,metalness:0.2});
+  const critMat=new THREE.MeshBasicMaterial(), warnMat=new THREE.MeshBasicMaterial(), goodMat=new THREE.MeshBasicMaterial(), markMat=new THREE.MeshBasicMaterial();
+  function frameAt(s){const b=sampleAt(s);const g=new THREE.Group();g.position.set(b.x,0,b.z);g.rotation.y=-Math.atan2(b.tz,b.tx);scene.add(g);return {g,b};}
+  // dam
+  const damF=frameAt(S_DAM), W=damF.b.hw*2, damBase=(bedS[NS*S_DAM+2]-0.6)*VS, damTop=18.0*VS;
+  const deck=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.35,W+3),concreteMat); deck.position.y=damTop; damF.g.add(deck);
+  const nP=9, gates=[];
+  for(let k=0;k<nP;k++){const z=-W/2+k*W/(nP-1);const p=new THREE.Mesh(new THREE.BoxGeometry(1.8,damTop-damBase,0.34),concreteMat);p.position.set(0,(damTop+damBase)/2,z);damF.g.add(p);}
+  const poolBed=bedS[NS*S_DAM]*VS, gateH=(16.9-14.5)*VS;
+  for(let k=0;k<nP-1;k++){const z=-W/2+(k+0.5)*W/(nP-1);const gm=new THREE.Mesh(new THREE.BoxGeometry(0.28,gateH,W/(nP-1)-0.36),steelMat);gm.position.set(-1.05,0,z);damF.g.add(gm);gates.push(gm);}
+  const sill=new THREE.Mesh(new THREE.BoxGeometry(2.4,poolBed-damBase+0.1,W+3),concreteMat); sill.position.y=(poolBed+damBase)/2; damF.g.add(sill);
+  // gauges
+  function gauge(s,side,marks,lo,hi){
+    const b=sampleAt(s), off=b.hw+0.9, x=b.x+b.nx*side*off, z=b.z+b.nz*side*off;
+    const post=new THREE.Mesh(new THREE.CylinderGeometry(0.11,0.11,(hi-lo)*VS,8),steelMat); post.position.set(x,(hi+lo)/2*VS,z); scene.add(post);
+    marks.forEach(([v,mat])=>{const m=new THREE.Mesh(new THREE.BoxGeometry(0.7,0.07,0.7),mat);m.position.set(x,v*VS,z);scene.add(m);});
+    const ind=new THREE.Mesh(new THREE.BoxGeometry(0.9,0.12,0.9),markMat); ind.position.set(x,0,z); scene.add(ind);
+    return ind;
+  }
+  const poolGauge=gauge(S_DAM-0.012,1,[[POOL_MAX,critMat],[POOL_CTRL,warnMat],[POOL_TGT,goodMat]],13.5,17.6);
+  const stGauges=STATIONS.map(st=>gauge(st.s,1,[[st.bank,critMat],[st.bank-0.3,warnMat]],0,st.bank+0.8));
+  const r8Gauge=gauge(S_R8+0.006,-1,[[R8_BANK,critMat],[R8_WARN,warnMat]],0,3.9);
+  // Rama 8 bridge (single pylon, cable stayed)
+  const r8=frameAt(S_R8), span=r8.b.hw*2+6, deckY=4.7*VS;
+  const bdeck=new THREE.Mesh(new THREE.BoxGeometry(1.1,0.3,span),concreteMat); bdeck.position.y=deckY; r8.g.add(bdeck);
+  const pyl=new THREE.Mesh(new THREE.BoxGeometry(0.6,7.2,0.6),concreteMat); pyl.position.set(0,deckY+3.2,r8.b.hw+1.6); pyl.rotation.x=0.12; r8.g.add(pyl);
+  const top=new V3(0,deckY+6.6,r8.b.hw+2.0), cab=[];
+  for(let k=1;k<=7;k++){const zz=r8.b.hw+1.6-k*(span-2)/7.5;cab.push(top.x,top.y,top.z,0,deckY+0.15,zz);}
+  for(let k=1;k<=3;k++){cab.push(top.x,top.y,top.z,0,deckY+0.15,r8.b.hw+1.6+k*0.9+0.6);}
+  const cg=new THREE.BufferGeometry(); cg.setAttribute('position',new THREE.Float32BufferAttribute(cab,3));
+  const cableMat=new THREE.LineBasicMaterial(); r8.g.add(new THREE.LineSegments(cg,cableMat));
+
+  /* flow particles */
+  const sprite=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const gr=x.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(0.45,'rgba(255,255,255,.85)');gr.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);})();
+  const DEN=0.0009;
+  const streams=[];
+  function riverStream(s0,s1,flowFn){const len=(s1-s0)*curve.getLength();streams.push({len,flow:flowFn,den:DEN,speed:6,maxF:Math.max(...DATE.map((_,i)=>flowFn(i))),
+    at:(u,lat,K,o)=>{const s=s0+u*(s1-s0),b=sampleAt(s);o.x=b.x+b.nx*lat*b.hw*0.8;o.z=b.z+b.nz*lat*b.hw*0.8;o.y=waterAt(s,K)*VS+0.06;}});}
+  riverStream(0,S_DAM+0.0001,f=>lerpArr(D.arrive,f));
+  riverStream(S_DAM+0.0001,S_JOIN,f=>lerpArr(D.release,f));
+  riverStream(S_JOIN,1,f=>lerpArr(D.release,f)+lerpArr(D.pasak,f));
+  tribs.forEach(T=>{const isC=T.kind==='canal';const src=isC?T.def.q:D.pasak;
+    streams.push({len:T.len,flow:f=>lerpArr(src,f),den:isC?DEN*6:DEN,speed:isC?3.5:5,maxF:Math.max(...src),
+      at:(u,lat,K,o,pool)=>{const f=u*(T.S.length-1),j=Math.min(Math.floor(f),T.S.length-2),t=f-j,a=T.S[j],b=T.S[j+1];
+        o.x=a.x+(b.x-a.x)*t+a.nx*lat*T.hw*0.7;o.z=a.z+(b.z-a.z)*t+a.nz*lat*T.hw*0.7;o.y=T.water(u,j,pool,K)*VS+0.06;}});});
+  let total=0; streams.forEach(S=>{S.max=Math.ceil(S.maxF*S.len*S.den)+2;S.off=total;total+=S.max;S.u=Float32Array.from({length:S.max},()=>Math.random());S.lat=Float32Array.from({length:S.max},()=>Math.random()*2-1);});
+  const pPos=new Float32Array(total*3);
+  const pGeo=new THREE.BufferGeometry(); pGeo.setAttribute('position',new THREE.BufferAttribute(pPos,3));
+  const pMat=new THREE.PointsMaterial({size:0.55,map:sprite,transparent:true,depthWrite:false,opacity:0.9,sizeAttenuation:true});
+  const points=new THREE.Points(pGeo,pMat); points.frustumCulled=false; scene.add(points);
+
+  /* lights */
+  const hemi=new THREE.HemisphereLight(0xffffff,0x444444,0.85); scene.add(hemi);
+  const sun=new THREE.DirectionalLight(0xffffff,0.75); sun.position.set(-60,120,80); scene.add(sun);
+
+  /* theme */
+  const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  function applyTheme(){
+    const C=n=>new THREE.Color(css(n)||'#888');
+    const sky=C('--sky'); scene.background=sky; scene.fog=new THREE.Fog(sky,200,420); renderer.setClearColor(sky);
+    const dark=sky.getHSL({}).l<0.3;
+    hemi.intensity=dark?0.6:0.55; sun.intensity=dark?0.55:0.6; hemi.color.copy(C('--sky')).lerp(new THREE.Color(1,1,1),0.4); hemi.groundColor.copy(C('--land-2'));
+    const land=C('--land'),land2=C('--land-2'),bank=C('--bank'),tmp=new THREE.Color();
+    for(let v=0;v<nV;v++){tmp.copy(land).lerp(land2,patch[v]*0.7);tmp.lerp(bank,near[v]);landCol[v*3]=tmp.r;landCol[v*3+1]=tmp.g;landCol[v*3+2]=tmp.b;}
+    landGeo.attributes.color.needsUpdate=true;
+    waterMat.color=C('--water'); seaMat.color=C('--sea'); concreteMat.color=C('--concrete'); steelMat.color=C('--steel'); cableMat.color=C('--steel');
+    critMat.color=C('--crit'); warnMat.color=C('--warn'); goodMat.color=C('--good'); markMat.color=C('--accent'); pMat.color=C('--spark');
+  }
+  applyTheme();
+  try{matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{applyTheme();});}catch(e){}
+  new MutationObserver(applyTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','class','style']});
+
+  /* per-frame water update */
+  let lastF=-1;
+  function updateWater(f){
+    const K=knots(f), pool=K.pool;
+    setRib(riverRib,i=>{const r=RS[i];return {x:r.x,z:r.z,nx:r.nx,nz:r.nz,hw:r.hw*1.02,y:waterAt(r.s,K)*VS};});
+    tribs.forEach(T=>setRib(T.rib,j=>{const p=T.S[j];return {x:p.x,z:p.z,nx:p.nx,nz:p.nz,hw:T.hw,y:T.water(p.u,j,pool,K)*VS};}));
+    sea.position.y=lerpArr(D.tide,f)*VS-0.03;
+    const open=lerpArr(D.release,f)/1800; // gate lift follows the planned release
+    gates.forEach(g=>{g.position.y=poolBed+0.2+open*1.0+gateH/2;});
+    poolGauge.position.y=pool*VS; stGauges.forEach((gm,k)=>{gm.position.y=lerpArr(STATIONS[k].lv,f)*VS;}); r8Gauge.position.y=lerpArr(D.rama8,f)*VS;
+    return K;
+  }
+  let K=updateWater(0);
+
+  /* labels */
+  const tagLayer=$('tags'), tags=[];
+  function addTag(key,focus,minor,posFn,htmlFn){
+    const el=document.createElement('button'); el.type='button'; el.className='tag'+(minor?' minor':''); el.dataset.focus=focus;
+    el.addEventListener('click',()=>setFocus(focus,true)); tagLayer.appendChild(el);
+    tags.push({el,posFn,htmlFn,focus,v:new V3()});
+  }
+  const top3=(s,dy)=>()=>{const b=sampleAt(s);return [b.x,waterAt(s,K)*VS+dy,b.z];};
+  addTag('north','north',false,top3(0.03,2.2),d=>`น้ำเหนือ C.2 + สะแกกรัง <b>${fmt(D.arrive[d])}</b>`);
+  addTag('dam','dam',false,()=>[damF.b.x,damTop+2.4,damF.b.z],d=>`เขื่อนเจ้าพระยา · ระบาย <b>${fmt(D.release[d])}</b>`);
+  addTag('pool','dam',false,()=>{const b=sampleAt(S_DAM-0.09);return [b.x,K.pool*VS+1.4,b.z];},d=>{const v=D.pool[d];const c=v>=POOL_MAX?'crit':v>POOL_CTRL?'warn':'good';return `<span class="dot ${c}"></span>เหนือเขื่อน <b>${lvl(v)}</b>`;});
+  tribs.forEach(T=>{const j=T.kind==='canal'?Math.min(T.S.length-1,26):18, p=T.S[j];
+    if(T.kind==='canal') addTag(T.def.id,'canals',true,()=>[p.x,T.water(p.u,j,K.pool,K)*VS+1.2,p.z],d=>`${T.def.name} <b>${T.def.q[d]}</b>`);
+    else addTag('pasak','down',false,()=>[p.x,T.water(p.u,j,K.pool,K)*VS+1.6,p.z],d=>`แม่น้ำป่าสัก <b>~${fmt(D.pasak[d])}</b>`);});
+  STATIONS.forEach((st,k)=>addTag(st.id,'tidal',false,()=>{const b=sampleAt(st.s);return [b.x+b.nx*(b.hw+0.9),(st.bank+0.9)*VS+(k%2?2.2:0),b.z+b.nz*(b.hw+0.9)];},
+    d=>{const [c]=stStatus(st.lv[d],st.bank);return `<span class="dot ${c}"></span>${st.code} ${st.name} <b>${lvl(st.lv[d])}</b>`;}));
+  addTag('rama8','rama8',false,()=>{const b=sampleAt(S_R8);return [b.x+b.nx*(b.hw+2),deckY+8.4,b.z+b.nz*(b.hw+2)];},d=>{const [c]=r8Status(D.rama8[d]);return `<span class="dot ${c}"></span>สะพานพระราม 8 <b>${lvl(D.rama8[d])}</b>`;});
+  addTag('sea','rama8',false,()=>[104,lerpArr(D.tide,state.dayF)*VS+1.4,0],d=>`สันดอน · น้ำขึ้นสูงสุด <b>${lvl(D.tide[d])}</b>`);
+  function refreshTags(){tags.forEach(t=>{t.el.innerHTML=t.htmlFn(state.day);});}
+  refreshTags();
+
+  /* camera presets */
+  function preset(id){
+    const P=(s,dy)=>{const b=sampleAt(s);return new V3(b.x,waterAt(s,K)*VS+dy,b.z);};
+    switch(id){
+      case 'north': {const t=P(0.09,0);return [t,t.clone().add(new V3(-8,26,34))];}
+      case 'canals':{const t=P(0.2,-2);return [t,t.clone().add(new V3(-4,50,40))];}
+      case 'dam':   {const t=P(S_DAM,-1.5);return [t,t.clone().add(new V3(-3,7,17))];}
+      case 'down':  {const t=P(0.44,0);return [t,t.clone().add(new V3(-6,40,50))];}
+      case 'tidal': {const t=P(0.75,0);return [t,t.clone().add(new V3(-10,24,32))];}
+      case 'rama8': {const t=P(0.92,0);return [t,t.clone().add(new V3(-14,12,20))];}
+      default: return [new V3(2,4,4),new V3(-6,98,128)];
+    }
+  }
+  let fly=null;
+  function flyTo(id){const [t,p]=preset(id);if(reduceMotion){controls.target.copy(t);camera.position.copy(p);controls.update();return;}
+    fly={t0:performance.now(),dur:1300,ft:controls.target.clone(),fp:camera.position.clone(),tt:t,tp:p};}
+  { const [t,p]=preset('overview'); controls.target.copy(t); camera.position.copy(p); controls.update(); }
+  controls.addEventListener('start',()=>{fly=null;$('hint').hidden=true;});
+
+  /* resize */
+  function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();stage.classList.toggle('compact',w<680);}
+  new ResizeObserver(resize).observe(stage); resize();
+
+  /* loop */
+  const tmp={x:0,y:0,z:0}, proj=new V3();
+  let last=performance.now();
+  function frame(now){
+    const dt=Math.min(0.05,(now-last)/1000); last=now;
+    state.dayF+= (state.day-state.dayF)*Math.min(1,dt*3.5);
+    if(Math.abs(state.day-state.dayF)<0.001) state.dayF=state.day;
+    if(state.dayF!==lastF){K=updateWater(state.dayF);lastF=state.dayF;}
+    if(fly){const t=clamp((now-fly.t0)/fly.dur,0,1),e=t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+      controls.target.lerpVectors(fly.ft,fly.tt,e);camera.position.lerpVectors(fly.fp,fly.tp,e);if(t>=1)fly=null;}
+    controls.update();
+    // particles
+    const f=state.dayF;
+    for(const S of streams){
+      const act=Math.min(S.max,Math.round(S.flow(f)*S.len*S.den)), du=(reduceMotion?0:S.speed*dt)/S.len;
+      for(let k=0;k<S.max;k++){const o=(S.off+k)*3;
+        if(k>=act){pPos[o+1]=-999;continue;}
+        S.u[k]+=du; if(S.u[k]>1)S.u[k]-=1;
+        S.at(S.u[k],S.lat[k],K,tmp,K.pool); pPos[o]=tmp.x;pPos[o+1]=tmp.y;pPos[o+2]=tmp.z;}
+    }
+    pGeo.attributes.position.needsUpdate=true;
+    renderer.render(scene,camera);
+    // tags
+    const w=stage.clientWidth,h=stage.clientHeight;
+    for(const t of tags){const p=t.posFn();proj.set(p[0],p[1],p[2]).project(camera);
+      const vis=proj.z<1&&proj.x>-1.1&&proj.x<1.1&&proj.y>-1.1&&proj.y<1.1;
+      t.el.style.visibility=vis?'visible':'hidden';
+      if(vis){const x=(proj.x+1)/2*w,y=(1-proj.y)/2*h-12;t.el.style.transform=`translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(-50%,-100%)`;}}
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+
+  return {
+    dayChanged(){refreshTags();},
+    fly:flyTo,
+    highlight(id){tags.forEach(t=>t.el.classList.toggle('active',t.focus===id));$('stage').classList.toggle('show-minor',id==='canals');}
+  };
+}
+
+/* boot */
+renderPanel(); renderInfo(); flowC.place(0); poolC.place(0);
+try{ scene3d=init3D(); setFocus('overview',false); }
+catch(err){
+  console.error(err);
+  $('stage').insertAdjacentHTML('beforeend','<div class="stage-fallback">ไม่สามารถแสดงภาพ 3 มิติในเบราว์เซอร์นี้ (ต้องใช้ WebGL) ค่าในแผงด้านข้างและกราฟยังใช้งานได้ตามปกติ</div>');
+  $('hint').hidden=true; $('resetView').hidden=true;
+}
+})();
+</script>
