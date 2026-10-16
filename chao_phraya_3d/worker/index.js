@@ -1,13 +1,16 @@
 // Chao Phraya 3D site: serves the static page (public/) and an archive of uploaded
-// release-plan PDFs stored in R2 under plans/<id>.pdf with a JPEG thumbnail plans/<id>.jpg.
+// release-plan PDFs stored in R2 under plans/<id>.pdf, with a JPEG thumbnail plans/<id>.jpg
+// and, when the page could read the numbers, the plan data plans/<id>.json.
 //
 //   GET    /api/plans          list archived plans, newest plan date first
-//   POST   /api/plans          upload (multipart: pdf, thumb, date) — needs Authorization: Bearer <UPLOAD_PASSWORD>
+//   POST   /api/plans          upload (multipart: pdf, thumb, date, data) — needs Authorization: Bearer <UPLOAD_PASSWORD>
 //   DELETE /api/plans/:id      delete one plan — same password
-//   GET    /files/plans/<id>.(pdf|jpg)
+//   GET    /files/plans/<id>.(pdf|jpg|json)
+import PlanParser from "../public/plan-parser.js";
 
 const MAX_PDF = 25 * 1024 * 1024;
 const MAX_THUMB = 2 * 1024 * 1024;
+const MAX_DATA = 256 * 1024;
 const ID_RE = /^\d{4}-\d{2}-\d{2}-[a-z0-9]{4,20}$/;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -26,7 +29,7 @@ export default {
         if (req.method !== "DELETE") return json({ error: "method not allowed" }, 405);
         return await deletePlan(req, env, del[1]);
       }
-      const file = path.match(/^\/files\/(plans\/[^/]+\.(pdf|jpg))$/);
+      const file = path.match(/^\/files\/(plans\/[^/]+\.(pdf|jpg|json))$/);
       if (file && (req.method === "GET" || req.method === "HEAD")) return await serveFile(req, env, file[1], file[2]);
       if (path.startsWith("/api/") || path.startsWith("/files/")) return json({ error: "not found" }, 404);
     } catch (err) {
@@ -50,15 +53,17 @@ async function listPlans(env) {
   do {
     const page = await env.BUCKET.list({ prefix: "plans/", cursor, limit: 1000 });
     for (const obj of page.objects) {
-      const m = obj.key.match(/^plans\/(.+)\.(pdf|jpg)$/);
+      const m = obj.key.match(/^plans\/(.+)\.(pdf|jpg|json)$/);
       if (!m || !ID_RE.test(m[1])) continue;
       const p = byId.get(m[1]) || { id: m[1], date: m[1].slice(0, 10) };
       if (m[2] === "pdf") {
         p.pdf = `/files/${obj.key}`;
         p.size = obj.size;
         p.uploaded = obj.uploaded.toISOString();
-      } else {
+      } else if (m[2] === "jpg") {
         p.thumb = `/files/${obj.key}`;
+      } else {
+        p.data = `/files/${obj.key}`;
       }
       byId.set(m[1], p);
     }
@@ -99,7 +104,7 @@ async function startsWith(file, bytes) {
 async function uploadPlan(req, env) {
   if (!(await authorized(req, env))) return authError(env);
   const len = Number(req.headers.get("content-length") || 0);
-  if (len > MAX_PDF + MAX_THUMB + 64 * 1024) return json({ error: "ไฟล์ใหญ่เกิน 25 MB" }, 413);
+  if (len > MAX_PDF + MAX_THUMB + MAX_DATA + 64 * 1024) return json({ error: "ไฟล์ใหญ่เกิน 25 MB" }, 413);
 
   const form = await req.formData();
   const pdf = form.get("pdf");
@@ -114,16 +119,35 @@ async function uploadPlan(req, env) {
     return json({ error: "ภาพย่อไม่ถูกต้อง" }, 400);
   }
 
+  let data = null;
+  const rawData = form.get("data");
+  if (typeof rawData === "string" && rawData) {
+    if (rawData.length > MAX_DATA) return json({ error: "ข้อมูลแผนใหญ่เกินไป" }, 413);
+    try {
+      data = JSON.parse(rawData);
+      PlanParser.validate(data);
+    } catch (err) {
+      return json({ error: "ข้อมูลตัวเลขของแผนไม่ถูกต้อง: " + (err.message || "รูปแบบผิด") }, 400);
+    }
+  }
+
   const id = `${date}-${Date.now().toString(36)}`;
   await env.BUCKET.put(`plans/${id}.pdf`, pdf.stream(), { httpMetadata: { contentType: "application/pdf" } });
   if (hasThumb) await env.BUCKET.put(`plans/${id}.jpg`, thumb.stream(), { httpMetadata: { contentType: "image/jpeg" } });
-  return json({ plan: { id, date, pdf: `/files/plans/${id}.pdf`, thumb: hasThumb ? `/files/plans/${id}.jpg` : undefined } }, 201);
+  if (data) await env.BUCKET.put(`plans/${id}.json`, JSON.stringify(data), { httpMetadata: { contentType: "application/json; charset=utf-8" } });
+  return json({
+    plan: {
+      id, date, pdf: `/files/plans/${id}.pdf`,
+      thumb: hasThumb ? `/files/plans/${id}.jpg` : undefined,
+      data: data ? `/files/plans/${id}.json` : undefined,
+    },
+  }, 201);
 }
 
 async function deletePlan(req, env, id) {
   if (!ID_RE.test(id)) return json({ error: "not found" }, 404);
   if (!(await authorized(req, env))) return authError(env);
-  await env.BUCKET.delete([`plans/${id}.pdf`, `plans/${id}.jpg`]);
+  await env.BUCKET.delete([`plans/${id}.pdf`, `plans/${id}.jpg`, `plans/${id}.json`]);
   return json({ deleted: id });
 }
 

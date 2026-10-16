@@ -35,14 +35,22 @@ fi
 # Put the 16 Oct 2569 plan into the archive once. The marker lives outside plans/,
 # so deleting that plan from the web page does not bring it back on the next deploy.
 SEED_ID="2026-10-16-seed0001"
+printf 'seeded\n' > "${TMP}/seeded.txt"
 if wr r2 object get "${BUCKET}/meta/seeded-${SEED_ID}" --remote --pipe >/dev/null 2>&1; then
   echo "Archive already seeded"
 else
   echo "Seeding the archive with the 16 Oct plan"
   wr r2 object put "${BUCKET}/plans/${SEED_ID}.pdf" --file seed/2026-10-16.pdf --ct application/pdf --remote
   wr r2 object put "${BUCKET}/plans/${SEED_ID}.jpg" --file seed/2026-10-16.jpg --ct image/jpeg --remote
-  printf 'seeded\n' > "${TMP}/seeded.txt"
   wr r2 object put "${BUCKET}/meta/seeded-${SEED_ID}" --file "${TMP}/seeded.txt" --ct text/plain --remote
+fi
+
+if wr r2 object get "${BUCKET}/meta/seeded-${SEED_ID}-json" --remote --pipe >/dev/null 2>&1; then
+  echo "Seed plan data already present"
+else
+  echo "Adding the 16 Oct plan numbers to the archive"
+  wr r2 object put "${BUCKET}/plans/${SEED_ID}.json" --file seed/2026-10-16.json --ct "application/json; charset=utf-8" --remote
+  wr r2 object put "${BUCKET}/meta/seeded-${SEED_ID}-json" --file "${TMP}/seeded.txt" --ct text/plain --remote
 fi
 
 wr deploy 2>&1 | tee "${TMP}/deploy.log"

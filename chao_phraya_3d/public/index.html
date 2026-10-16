@@ -240,6 +240,14 @@ footer.src p{margin:0}
 .viewer-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .del-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:.85rem}
 .viewer-pages{overflow:auto;padding:14px;display:grid;gap:14px;align-content:start;background:var(--panel-2)}
+.plan-note{flex-basis:100%;order:3;margin:0;font-size:.88rem;color:var(--ink-2)}
+.plan-note a{color:var(--accent)}
+.pc-badge.show{left:auto;right:14px;background:var(--ink);color:var(--bg)}
+.pc-flag{font-size:.72rem;color:var(--warn)}
+.up-parse{font-size:.84rem;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--bg);display:grid;gap:4px}
+.up-parse.ok{border-color:var(--good)}
+.up-parse.bad{border-color:var(--warn)}
+.up-parse ul{margin:0;padding-left:1.1em;color:var(--warn)}
 .viewer-pages canvas{display:block;width:100%;height:auto;background:var(--paper);border-radius:4px;box-shadow:0 1px 4px rgb(0 0 0 / .2)}
 
 @media (prefers-reduced-motion: reduce){.gauge .fill,.gate .bar i{transition:none}}
@@ -252,7 +260,8 @@ footer.src p{margin:0}
       <h1>แผนระบายเจ้าพระยา 3 มิติ</h1>
       <p class="lede">น้ำเหนือไหลมาถึงหน้าเขื่อน ถูกผันเข้าระบบชลประทาน ส่วนที่เหลือระบายลงท้ายน้ำ ผ่านเขตน้ำขึ้นลงจนถึงสะพานพระราม 8 เลื่อนวันที่เพื่อดูระดับน้ำและอัตราการไหลตามแผน หรือกดขั้นตอน 1–6 เพื่อดูทีละจุด</p>
     </div>
-    <div class="stamp">ข้อมูล ณ 16 ต.ค. 2569 · 14:40 น.</div>
+    <p class="plan-note" id="planNote" hidden></p>
+    <div class="stamp" id="stamp">ข้อมูล ณ 16 ต.ค. 2569 · 14:40 น.</div>
   </header>
 
   <div class="layout">
@@ -342,6 +351,7 @@ footer.src p{margin:0}
       <label for="upFile">ไฟล์ PDF (ไม่เกิน 25 MB)</label>
       <input type="file" id="upFile" accept="application/pdf,.pdf">
       <div class="up-preview"><img id="upThumb" alt="ภาพย่อหน้าแรกของไฟล์ที่เลือก" hidden><span id="upThumbNote" class="unit">เลือกไฟล์เพื่อดูภาพย่อหน้าแรก</span></div>
+      <div class="up-parse" id="upParse" hidden></div>
       <label for="upDate">วันที่ของแผน</label>
       <input type="date" id="upDate">
       <label for="upPass">รหัสผ่านสำหรับอัปโหลด</label>
@@ -356,6 +366,7 @@ footer.src p{margin:0}
       <div class="viewer-top">
         <h2 id="viewTitle">แผนการระบาย</h2>
         <div class="viewer-actions">
+          <button type="button" class="btn-primary" id="viewShow" hidden>แสดงในภาพ 3 มิติ</button>
           <a class="btn" id="viewOpen" href="#" target="_blank" rel="noopener">เปิดไฟล์ PDF</a>
           <button type="button" class="btn danger" id="viewDelete" hidden>ลบ</button>
           <button type="button" class="btn" id="viewClose">ปิด</button>
@@ -394,54 +405,74 @@ footer.src p{margin:0}
   </div>
 
   <details class="data">
-    <summary>ตารางข้อมูลทั้งหมด 16–25 ต.ค. 2569</summary>
+    <summary id="tableSummary">ตารางข้อมูลทั้งหมด 16–25 ต.ค. 2569</summary>
     <div class="table-scroll"><table class="full" id="fullTable"></table></div>
   </details>
 
   <footer class="src">
-    <p>ที่มาของตัวเลข: เอกสาร “แผนการระบายน้ำเขื่อนเจ้าพระยา 16 ต.ค. 2569” ส่วนบริหารจัดการน้ำ สำนักบริหารจัดการน้ำและอุทกวิทยา กรมชลประทาน (แบบจำลองแผนการระบายเขื่อนเจ้าพระยา V21 และแบบจำลองเขตน้ำขึ้นลง V21 · บันทึก 16 ต.ค. 2569 15:13 น.) หน้านี้จัดทำเพื่ออธิบายเอกสารดังกล่าว ไม่ใช่ประกาศของหน่วยงาน</p>
-    <p>ภาพ 3 มิติเป็นแผนผัง ระยะทางย่อและความสูงขยาย ระดับน้ำท้ายเขื่อนในภาพและอัตราการไหลรายวันของแม่น้ำป่าสัก (เอกสารระบุ 440 → 350 ลบ.ม./วินาที) เป็นค่าประมาณเพื่อแสดงภาพเท่านั้น จุดลอยน้ำแสดงความหนาแน่นตามอัตราการไหล (คลองชลประทานใช้มาตราส่วนขยาย 6 เท่า)</p>
+    <p>ที่มาของตัวเลข: เอกสาร <span id="srcDoc">“แผนการระบายน้ำเขื่อนเจ้าพระยา 16 ต.ค. 2569”</span> ส่วนบริหารจัดการน้ำ สำนักบริหารจัดการน้ำและอุทกวิทยา กรมชลประทาน ตัวเลขอ่านจากไฟล์ PDF โดยอัตโนมัติ หน้านี้จัดทำเพื่ออธิบายเอกสารดังกล่าว ไม่ใช่ประกาศของหน่วยงาน</p>
+    <p>ภาพ 3 มิติเป็นแผนผัง ระยะทางย่อและความสูงขยาย ระดับน้ำท้ายเขื่อนในภาพและอัตราการไหลรายวันของแม่น้ำป่าสัก<span id="pasakNote"> (เอกสารระบุ 440 → 350 ลบ.ม./วินาที)</span> เป็นค่าประมาณเพื่อแสดงภาพเท่านั้น จุดลอยน้ำแสดงความหนาแน่นตามอัตราการไหล (คลองชลประทานใช้มาตราส่วนขยาย 6 เท่า)</p>
   </footer>
 </div>
 
 <script src="vendor/three.min.js"></script>
 <script src="vendor/OrbitControls.js"></script>
+<script src="plan-parser.js"></script>
 <script>
-(function(){
+window.ChaoPhraya3D=(function(){
 "use strict";
 
-/* ---------------- data (from the PDF) ---------------- */
-const DATE = [16,17,18,19,20,21,22,23,24,25];
-const WD_S = ['ศ.','ส.','อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.','อา.'];
-const WD_L = ['ศุกร์','เสาร์','อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์','อาทิตย์'];
-const D = {
-  release:[1800,1800,1800,1800,1800,1700,1700,1600,1500,1400],
-  arrive:[2280,2341,2379,2318,2210,2076,1926,1811,1755,1720],
-  net:[1799,1865,1903,1842,1734,1657,1532,1477,1421,1386],
-  div:[481,476,476,476,476,419,394,334,334,334],
-  pool:[16.47,16.54,16.65,16.70,16.63,16.54,16.31,16.10,15.96,15.91],
-  rama8:[1.94,1.86,1.81,1.79,1.81,1.82,1.80,1.76,1.68,1.63],
-  rama8t:['11:00','12:00','13:00','15:00','16:00','17:00','17:00','17:00','17:00','18:00'],
-  tide:[0.99,0.95,0.91,0.89,0.93,0.96,0.96,0.92,0.87,0.84],
-  pasak:Array.from({length:10},(_,i)=>Math.round(440-90*i/9)) // approximation between 440 and 350 for the visual only
-};
-const POOL_MAX=16.80, POOL_CTRL=16.00, POOL_TGT=15.80, R8_WARN=2.55, R8_BANK=3.25;
-const GATES = [
-  {id:'manorom',   name:'ปตร.มโนรมย์',            side:-1, s:0.130, hw:1.0, q:[145,145,145,145,145,120,100,80,80,80], pts:[[0,0],[1,7],[4,18],[12,30],[22,44]]},
-  {id:'maharaj',   name:'ปตร.มหาราช',             side:-1, s:0.236, hw:0.75,q:[55,55,55,55,55,55,50,50,50,50],       pts:[[0,0],[3,5],[10,10],[22,15],[40,19]]},
-  {id:'phonlathep',name:'ปตร.พลเทพ',              side: 1, s:0.160, hw:0.8, q:[75,75,75,75,75,70,70,50,50,50],       pts:[[0,0],[0,7],[-2,18],[2,30],[8,44]]},
-  {id:'uthong',    name:'ปตร.มะขามเฒ่า-อู่ทอง',    side: 1, s:0.192, hw:0.5, q:[18,17,17,17,17,10,10,10,10,10],       pts:[[0,0],[2,6],[8,14],[16,24],[24,36]]},
-  {id:'krasiao',   name:'ปตร.มะขามเฒ่า-กระเสียว',  side: 1, s:0.206, hw:0.45,q:[9,9,9,9,9,9,9,9,9,9],                 pts:[[0,0],[3,6],[12,11],[24,19],[36,26]]},
-  {id:'others',    name:'คลองย่อย / อื่น ๆ',        side: 1, s:0.224, hw:0.45,q:[58,55,55,55,55,55,55,55,55,55],       pts:[[0,0],[2,3.5],[6,6],[11,8]]},
-  {id:'boromathat',name:'ปตร.บรมธาตุ',            side: 1, s:0.240, hw:1.0, q:[121,120,120,120,120,100,100,80,80,80], pts:[[0,0],[3,5],[10,9],[22,13],[38,16]]}
+/* ---------------- fixed geography ---------------- */
+const TH_M=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const TH_MF=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+const WD7_S=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'], WD7_L=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+const GATE_GEO = [
+  {id:'manorom',   name:'ปตร.มโนรมย์',            side:-1, s:0.130, hw:1.0, pts:[[0,0],[1,7],[4,18],[12,30],[22,44]]},
+  {id:'maharaj',   name:'ปตร.มหาราช',             side:-1, s:0.236, hw:0.75,pts:[[0,0],[3,5],[10,10],[22,15],[40,19]]},
+  {id:'phonlathep',name:'ปตร.พลเทพ',              side: 1, s:0.160, hw:0.8, pts:[[0,0],[0,7],[-2,18],[2,30],[8,44]]},
+  {id:'uthong',    name:'ปตร.มะขามเฒ่า-อู่ทอง',    side: 1, s:0.192, hw:0.5, pts:[[0,0],[2,6],[8,14],[16,24],[24,36]]},
+  {id:'krasiao',   name:'ปตร.มะขามเฒ่า-กระเสียว',  side: 1, s:0.206, hw:0.45,pts:[[0,0],[3,6],[12,11],[24,19],[36,26]]},
+  {id:'others',    name:'คลองย่อย / อื่น ๆ',        side: 1, s:0.224, hw:0.45,pts:[[0,0],[2,3.5],[6,6],[11,8]]},
+  {id:'boromathat',name:'ปตร.บรมธาตุ',            side: 1, s:0.240, hw:1.0, pts:[[0,0],[3,5],[10,9],[22,13],[38,16]]}
 ];
-const STATIONS = [
-  {id:'c29b',code:'C.29B',name:'สามโคก',       bank:3.00,s:0.640,lv:[2.63,2.54,2.47,2.45,2.41,2.37,2.30,2.26,2.18,2.11]},
-  {id:'c38', code:'C.38', name:'เมืองปทุมธานี',bank:3.45,s:0.710,lv:[2.36,2.28,2.23,2.21,2.20,2.17,2.11,2.07,1.99,1.93]},
-  {id:'c22a',code:'C.22A',name:'ปากเกร็ด',     bank:2.90,s:0.790,lv:[2.15,2.11,2.10,2.11,2.13,2.14,2.12,2.09,2.03,1.98]},
-  {id:'c12', code:'C.12', name:'สามเสน',       bank:3.25,s:0.862,lv:[1.94,1.86,1.81,1.79,1.81,1.82,1.80,1.76,1.68,1.63]}
+const STATION_GEO = [
+  {id:'c29b',code:'C.29B',name:'สามโคก',       bank:3.00,s:0.640},
+  {id:'c38', code:'C.38', name:'เมืองปทุมธานี',bank:3.45,s:0.710},
+  {id:'c22a',code:'C.22A',name:'ปากเกร็ด',     bank:2.90,s:0.790},
+  {id:'c12', code:'C.12', name:'สามเสน',       bank:3.25,s:0.862}
 ];
 const S_DAM=0.25, S_JOIN=0.52, S_R8=0.885;
+
+/* the 16 Oct 2569 plan (read from its PDF by plan-parser.js); shown when no archived plan data loads */
+const DEFAULT_DATA = {"version":1,"source":{"title":"แผนการระบายน้ำเขื่อนเจ้าพระยา 16 ต.ค. 2569","stamp":"ข้อมูล ณ 16 ต.ค. 2569 · 14:40 น."},"dates":["2026-10-16","2026-10-17","2026-10-18","2026-10-19","2026-10-20","2026-10-21","2026-10-22","2026-10-23","2026-10-24","2026-10-25"],"release":[1800,1800,1800,1800,1800,1700,1700,1600,1500,1400],"arrive":[2280,2341,2379,2318,2210,2076,1926,1811,1755,1720],"net":[1799,1865,1903,1842,1734,1657,1532,1477,1421,1386],"div":[481,476,476,476,476,419,394,334,334,334],"pool":[16.47,16.54,16.65,16.7,16.63,16.54,16.31,16.1,15.96,15.91],"rama8":[1.94,1.86,1.81,1.79,1.81,1.82,1.8,1.76,1.68,1.63],"rama8t":["11:00","12:00","13:00","15:00","16:00","17:00","17:00","17:00","17:00","18:00"],"tide":[0.99,0.95,0.91,0.89,0.93,0.96,0.96,0.92,0.87,0.84],"gates":[{"id":"manorom","q":[145,145,145,145,145,120,100,80,80,80]},{"id":"maharaj","q":[55,55,55,55,55,55,50,50,50,50]},{"id":"phonlathep","q":[75,75,75,75,75,70,70,50,50,50]},{"id":"boromathat","q":[121,120,120,120,120,100,100,80,80,80]},{"id":"uthong","q":[18,17,17,17,17,10,10,10,10,10]},{"id":"krasiao","q":[9,9,9,9,9,9,9,9,9,9]},{"id":"others","q":[58,55,55,55,55,55,55,55,55,55]}],"stations":[{"code":"C.29B","lv":[2.63,2.54,2.47,2.45,2.41,2.37,2.3,2.26,2.18,2.11],"bank":3},{"code":"C.38","lv":[2.36,2.28,2.23,2.21,2.2,2.17,2.11,2.07,1.99,1.93],"bank":3.45},{"code":"C.22A","lv":[2.15,2.11,2.1,2.11,2.13,2.14,2.12,2.09,2.03,1.98],"bank":2.9},{"code":"C.12","lv":[1.94,1.86,1.81,1.79,1.81,1.82,1.8,1.76,1.68,1.63],"bank":3.25}],"thresholds":{"poolMax":16.8,"poolCtrl":16,"poolTgt":15.8,"r8Warn":2.55,"r8Bank":3.25},"notes":{"c2Now":1651,"c2Day":16,"c2Mon":9,"c2Lo":1306,"c2Hi":1470,"pasakFrom":440,"pasakTo":350}};
+
+let started=false;
+function start(input){
+if(started) return; started=true;
+const DS = input || DEFAULT_DATA;
+
+/* ---------------- plan data ---------------- */
+const N=DS.dates.length, LAST=N-1;
+const DT=DS.dates.map(s=>{const [y,m,d]=s.split('-').map(Number);return {y,m:m-1,d,wd:new Date(y,m-1,d).getDay()};});
+const dShort=i=>`${DT[i].d} ${TH_M[DT[i].m]}`;
+const dYear=i=>`${dShort(i)} ${DT[i].y+543}`;
+const dLong=i=>`${WD7_L[DT[i].wd]} ${dYear(i)}`;
+const wdS=i=>WD7_S[DT[i].wd];
+const RANGE=`${DT[0].d}${DT[0].m===DT[LAST].m?'':' '+TH_M[DT[0].m]}–${dShort(LAST)} ${DT[LAST].y+543}`;
+const TH=Object.assign({poolMax:16.80,poolCtrl:16.00,poolTgt:15.80,r8Warn:2.55,r8Bank:3.25},
+  Object.fromEntries(Object.entries(DS.thresholds||{}).filter(([,v])=>typeof v==='number')));
+const POOL_MAX=TH.poolMax, POOL_CTRL=TH.poolCtrl, POOL_TGT=TH.poolTgt, R8_WARN=TH.r8Warn, R8_BANK=TH.r8Bank;
+const NOTES=DS.notes||{};
+const HAS_PASAK=NOTES.pasakFrom!=null&&NOTES.pasakTo!=null;
+const D = {
+  release:DS.release, arrive:DS.arrive, net:DS.net, div:DS.div, pool:DS.pool,
+  rama8:DS.rama8, rama8t:DS.rama8t||DS.dates.map(()=>null), tide:DS.tide,
+  // the document gives Pa Sak only as start → end; spread it linearly for the animation
+  pasak:DS.dates.map((_,i)=>HAS_PASAK?Math.round(NOTES.pasakFrom+(NOTES.pasakTo-NOTES.pasakFrom)*i/Math.max(1,LAST)):400)
+};
+const GATES=GATE_GEO.map(g=>{const f=(DS.gates||[]).find(x=>x.id===g.id);return Object.assign({},g,{q:(f&&f.q)||DS.dates.map(()=>0)});});
+const STATIONS=STATION_GEO.map(g=>{const f=(DS.stations||[]).find(x=>x.code===g.code);return Object.assign({},g,{bank:(f&&f.bank)||g.bank,lv:f.lv});});
+const CUT=D.release.findIndex(v=>v!==D.release[0]); // first day the release changes, or -1
 
 /* ---------------- helpers ---------------- */
 const fmt = n => Math.round(n).toLocaleString('en-US');
@@ -456,21 +487,33 @@ function r8Status(v){if(v>=R8_BANK)return['crit','ล้นตลิ่ง'];if(
 const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------------- explanations ---------------- */
+const trend=(a,b,tol)=>b<a-tol?'ลดลง':b>a+tol?'เพิ่มขึ้น':'ใกล้เคียงเดิม';
+function releaseStory(){
+  const runs=[]; D.release.forEach((v,i)=>{const r=runs[runs.length-1]; if(r&&r.v===v) r.to=i; else runs.push({v,from:i,to:i});});
+  if(runs.length===1) return `แผนคงระบาย ${fmt(runs[0].v)} ลบ.ม./วินาทีตลอดช่วง ${RANGE}`;
+  return `แผนระบาย ${fmt(runs[0].v)} ลบ.ม./วินาที${runs[0].to>0?' ถึง '+dShort(runs[0].to):''} แล้วปรับเป็น ${runs.slice(1).map(r=>fmt(r.v)).join(' → ')}`;
+}
+const c2Text = NOTES.c2Now!=null
+  ? ` วันที่ ${NOTES.c2Day} ${TH_M[NOTES.c2Mon]} C.2 วัดได้ ${fmt(NOTES.c2Now)} ลบ.ม./วินาที`+(NOTES.c2Lo!=null?` คาดการณ์ช่วงถัดไป ${fmt(NOTES.c2Lo)}${NOTES.c2Hi!=null?'–'+fmt(NOTES.c2Hi):''} ลบ.ม./วินาที`:'')
+  : '';
+const closest=(()=>{let b=null;STATIONS.forEach(s=>s.lv.forEach((v,i)=>{const m=s.bank-v;if(!b||m<b.m)b={s,i,m};}));return b;})();
+const anyOver=STATIONS.some(s=>s.lv.some(v=>v>=s.bank)), anyWatch=STATIONS.some(s=>s.lv.some(v=>v>=s.bank-0.30));
+const r8Max=Math.max(...D.rama8), r8MaxI=D.rama8.indexOf(r8Max);
 const INFO = {
   overview:{t:'ภาพรวมเส้นทางน้ำ', p:'น้ำเหนือจากนครสวรรค์ไหลมาถึงหน้าเขื่อนเจ้าพระยา ส่วนหนึ่งถูกผันเข้าระบบชลประทานทั้งฝั่งตะวันออกและตะวันตก ที่เหลือคือน้ำไหลเข้าสุทธิ เขื่อนระบายน้ำลงท้ายน้ำตามแผน น้ำไหลรวมกับแม่น้ำป่าสักที่อยุธยา ผ่านเขตน้ำขึ้นลงตั้งแต่ปทุมธานีจนถึงสะพานพระราม 8 แล้วออกทะเลที่สันดอน',
     figs:d=>[['ระบาย',fmt(D.release[d])+' ลบ.ม./วิ'],['ระดับเหนือเขื่อน',lvl(D.pool[d])],['พระราม 8',lvl(D.rama8[d])]]},
-  north:{t:'1 · น้ำเหนือไหลมาถึงหน้าเขื่อน', p:'น้ำที่มาถึงหน้าเขื่อนคิดจากสถานี C.2 นครสวรรค์ (เดินทางราว 12 ชม.) รวมกับแม่น้ำสะแกกรัง (ราว 6 ชม.) และน้ำด้านข้าง วันที่ 16 ต.ค. C.2 วัดได้ 1,651 ลบ.ม./วินาที และคาดว่าจะลดลงเหลือ 1,306–1,470 ลบ.ม./วินาที น้ำที่มาถึงหน้าเขื่อนจึงลดจาก 2,280 เหลือ 1,720 ลบ.ม./วินาทีในวันที่ 25 ต.ค.',
+  north:{t:'1 · น้ำเหนือไหลมาถึงหน้าเขื่อน', p:`น้ำที่มาถึงหน้าเขื่อนคิดจากสถานี C.2 นครสวรรค์ (เดินทางราว 12 ชม.) รวมกับแม่น้ำสะแกกรัง (ราว 6 ชม.) และน้ำด้านข้าง${c2Text} น้ำที่มาถึงหน้าเขื่อน${trend(D.arrive[0],D.arrive[LAST],30)}จาก ${fmt(D.arrive[0])} เป็น ${fmt(D.arrive[LAST])} ลบ.ม./วินาทีในวันที่ ${dShort(LAST)}`,
     figs:d=>[['น้ำไหลมาถึงหน้าเขื่อน',fmt(D.arrive[d])+' ลบ.ม./วิ']]},
-  canals:{t:'2 · ผันน้ำเข้าระบบชลประทาน', p:'ประตูระบายน้ำ (ปตร.) เหนือเขื่อนรับน้ำเข้าคลองส่งน้ำ ฝั่งตะวันออก (ฝั่งซ้าย) คือมโนรมย์และมหาราช ฝั่งตะวันตก (ฝั่งขวา) คือพลเทพ บรมธาตุ มะขามเฒ่า-อู่ทอง มะขามเฒ่า-กระเสียว และคลองย่อย น้ำส่วนนี้ไม่ไหลผ่านเขื่อน จึงหักออกจากน้ำที่มาถึง ได้เป็นน้ำไหลเข้าสุทธิ แผนคือทยอยลดการรับน้ำจาก 481 เหลือ 334 ลบ.ม./วินาที',
+  canals:{t:'2 · ผันน้ำเข้าระบบชลประทาน', p:`ประตูระบายน้ำ (ปตร.) เหนือเขื่อนรับน้ำเข้าคลองส่งน้ำ ฝั่งตะวันออก (ฝั่งซ้าย) คือมโนรมย์และมหาราช ฝั่งตะวันตก (ฝั่งขวา) คือพลเทพ บรมธาตุ มะขามเฒ่า-อู่ทอง มะขามเฒ่า-กระเสียว และคลองย่อย น้ำส่วนนี้ไม่ไหลผ่านเขื่อน จึงหักออกจากน้ำที่มาถึง ได้เป็นน้ำไหลเข้าสุทธิ แผนรับน้ำรวม${D.div[LAST]===D.div[0]?`คงที่ ${fmt(D.div[0])}`:`${trend(D.div[0],D.div[LAST],0)}จาก ${fmt(D.div[0])} เป็น ${fmt(D.div[LAST])}`} ลบ.ม./วินาที`,
     figs:d=>[['ผันรวม',fmt(D.div[d])+' ลบ.ม./วิ'],['น้ำไหลเข้าสุทธิ',fmt(D.net[d])+' ลบ.ม./วิ']]},
-  dam:{t:'3 · เขื่อนเจ้าพระยา และระดับน้ำเหนือเขื่อน', p:'ระดับเหนือเขื่อนขึ้นกับสมดุลระหว่างน้ำไหลเข้าสุทธิกับน้ำที่ระบาย ถ้าน้ำเข้ามากกว่าที่ระบาย น้ำจะสะสมและระดับสูงขึ้น ถ้าน้อยกว่า ระดับจะลดลง แผนคงระบาย 1,800 ลบ.ม./วินาทีถึง 20 ต.ค. แล้วทยอยลดเป็น 1,700 → 1,600 → 1,500 → 1,400 แม้ลดการระบาย ระดับก็ยังลดลง เพราะน้ำเข้าสุทธิลดลงเร็วกว่า (1,657 → 1,386) ระดับจึงลงจาก +16.47 สู่ราว +15.9 ม.รทก. เพิ่มพื้นที่ว่างรองรับฝนที่อาจตกเพิ่ม',
+  dam:{t:'3 · เขื่อนเจ้าพระยา และระดับน้ำเหนือเขื่อน', p:`ระดับเหนือเขื่อนขึ้นกับสมดุลระหว่างน้ำไหลเข้าสุทธิกับน้ำที่ระบาย ถ้าน้ำเข้ามากกว่าที่ระบาย น้ำจะสะสมและระดับสูงขึ้น ถ้าน้อยกว่า ระดับจะลดลง ${releaseStory()} ระดับเหนือเขื่อนตามแผน${trend(D.pool[0],D.pool[LAST],0.02)}จาก ${lvl(D.pool[0])} เป็น ${lvl(D.pool[LAST])} ม.รทก. (เป้าหมาย ${lvl(POOL_TGT)} · สูงสุดที่ยอมรับ ${lvl(POOL_MAX)})`,
     figs:d=>[['ระบาย',fmt(D.release[d])+' ลบ.ม./วิ'],['ระดับเหนือเขื่อน',lvl(D.pool[d])+' ม.รทก.'],['ส่วนต่างสุทธิ − ระบาย',sgn(D.net[d]-D.release[d])]]},
-  down:{t:'4 · ท้ายเขื่อน และแม่น้ำป่าสัก', p:'น้ำที่ระบายจากเขื่อนไหลลงลุ่มเจ้าพระยาตอนล่าง แล้วรวมกับแม่น้ำป่าสักที่อยุธยา เขื่อนพระรามหกระบายแม่น้ำป่าสักลดลงจากราว 440 เหลือ 350 ลบ.ม./วินาทีในช่วงเดียวกัน',
-    figs:d=>[['ระบายท้ายเขื่อน',fmt(D.release[d])+' ลบ.ม./วิ'],['ป่าสัก (ประมาณ)','~'+fmt(D.pasak[d])+' ลบ.ม./วิ']]},
-  tidal:{t:'5 · เขตน้ำขึ้นลง C.29B – C.12', p:'ตั้งแต่ปทุมธานีลงไป ระดับน้ำสูงสุดแต่ละวันขึ้นกับทั้งน้ำจากทางเหนือและน้ำทะเลหนุน ทุกจุดต่ำกว่าตลิ่งตลอด 16–25 ต.ค. จุดที่ใกล้ตลิ่งที่สุดคือ C.29B สามโคก (ห่าง 0.37 ม. วันที่ 16 ต.ค.) หลังลดการระบายตั้งแต่ 21 ต.ค. ระดับ C.29B–C.22A ลดลงตามลำดับ',
+  down:{t:'4 · ท้ายเขื่อน และแม่น้ำป่าสัก', p:'น้ำที่ระบายจากเขื่อนไหลลงลุ่มเจ้าพระยาตอนล่าง แล้วรวมกับแม่น้ำป่าสักที่อยุธยา'+(HAS_PASAK?` เขื่อนพระรามหกระบายแม่น้ำป่าสัก${trend(NOTES.pasakFrom,NOTES.pasakTo,10)}จากราว ${fmt(NOTES.pasakFrom)} เป็น ${fmt(NOTES.pasakTo)} ลบ.ม./วินาทีในช่วงเดียวกัน`:''),
+    figs:d=>[['ระบายท้ายเขื่อน',fmt(D.release[d])+' ลบ.ม./วิ']].concat(HAS_PASAK?[['ป่าสัก (ประมาณ)','~'+fmt(D.pasak[d])+' ลบ.ม./วิ']]:[])},
+  tidal:{t:'5 · เขตน้ำขึ้นลง C.29B – C.12', p:`ตั้งแต่ปทุมธานีลงไป ระดับน้ำสูงสุดแต่ละวันขึ้นกับทั้งน้ำจากทางเหนือและน้ำทะเลหนุน ${anyOver?'มีบางจุดที่ระดับน้ำถึงหรือสูงกว่าตลิ่งในช่วงนี้':anyWatch?'ทุกจุดต่ำกว่าตลิ่ง แต่มีบางวันที่เข้าเกณฑ์เฝ้าระวัง (ต่ำกว่าตลิ่งไม่ถึง 0.30 ม.)':`ทุกจุดต่ำกว่าตลิ่งตลอด ${RANGE}`} จุดที่ใกล้ตลิ่งที่สุดคือ ${closest.s.code} ${closest.s.name} (ห่าง ${closest.m.toFixed(2)} ม. วันที่ ${dShort(closest.i)}) ระดับที่ ${STATIONS[0].code} ${trend(STATIONS[0].lv[0],STATIONS[0].lv[LAST],0.03)}จาก ${lvl(STATIONS[0].lv[0])} เป็น ${lvl(STATIONS[0].lv[LAST])} ม.รทก.`,
     figs:d=>STATIONS.slice(0,3).map(s=>[s.code,lvl(s.lv[d])])},
-  rama8:{t:'6 · สะพานพระราม 8 และสันดอน', p:'สะพานพระราม 8 อยู่ท้ายน้ำ C.12 สามเสนราว 3 กม. ระดับสูงสุด +1.94 ม.รทก. (16 ต.ค.) ต่ำกว่าระดับเตือนภัย +2.55 และต่ำกว่าตลิ่งวิกฤต +3.25 อยู่ 1.31 ม. ปริมาณน้ำที่ระบายจึงไม่ส่งผลกระทบพื้นที่ กทม. ที่สันดอน (ปากแม่น้ำ) น้ำขึ้นสูงสุดรายวันอยู่ระหว่าง +0.84 ถึง +0.99 ม.รทก.',
-    figs:d=>[['พระราม 8',lvl(D.rama8[d])+' (เวลา '+D.rama8t[d]+' น.)'],['ห่างตลิ่งวิกฤต',(R8_BANK-D.rama8[d]).toFixed(2)+' ม.'],['สันดอน',lvl(D.tide[d])]]}
+  rama8:{t:'6 · สะพานพระราม 8 และสันดอน', p:`สะพานพระราม 8 อยู่ท้ายน้ำ C.12 สามเสนราว 3 กม. ระดับสูงสุดในช่วงนี้ ${lvl(r8Max)} ม.รทก. (${dShort(r8MaxI)}) ${r8Max<R8_WARN?'ต่ำกว่า':'ถึง'}ระดับเตือนภัย ${lvl(R8_WARN)} ${r8Max<R8_BANK?`และต่ำกว่าตลิ่งวิกฤต ${lvl(R8_BANK)} อยู่ ${(R8_BANK-r8Max).toFixed(2)} ม.`:`และถึงตลิ่งวิกฤต ${lvl(R8_BANK)}`} ที่สันดอน (ปากแม่น้ำ) น้ำขึ้นสูงสุดรายวันอยู่ระหว่าง ${lvl(Math.min(...D.tide))} ถึง ${lvl(Math.max(...D.tide))} ม.รทก.`,
+    figs:d=>[['พระราม 8',lvl(D.rama8[d])+(D.rama8t[d]?' (เวลา '+D.rama8t[d]+' น.)':'')],['ห่างตลิ่งวิกฤต',(R8_BANK-D.rama8[d]).toFixed(2)+' ม.'],['สันดอน',lvl(D.tide[d])]]}
 };
 const TOUR = [
   {id:'north', label:'น้ำเหนือไหลมาถึง'},
@@ -489,17 +532,19 @@ const listeners = [];
 /* ---------------- UI: timeline ---------------- */
 const $ = id => document.getElementById(id);
 const slider=$('day');
-$('ticks').innerHTML = DATE.map((d,i)=>`<span data-i="${i}" class="${D.release[i]!==D.release[Math.max(0,i-1)]?'cut':''}">${d}</span>`).join('');
+slider.max=LAST;
+$('ticks').style.gridTemplateColumns=`repeat(${N},1fr)`;
+$('ticks').innerHTML = DT.map((t,i)=>`<span data-i="${i}" class="${D.release[i]!==D.release[Math.max(0,i-1)]?'cut':''}">${t.d}</span>`).join('');
 slider.addEventListener('input',()=>setDay(+slider.value,true));
 let playTimer=null;
 function setPlaying(on){
   state.playing=on;
   $('playIcon').innerHTML = on ? '<path d="M4 2.5h3v11H4zM9 2.5h3v11H9z"/>' : '<path d="M4 2.5v11l9-5.5z"/>';
-  $('play').setAttribute('aria-label', on?'หยุด':'เล่นแผน 10 วัน');
+  $('play').setAttribute('aria-label', on?'หยุด':`เล่นแผน ${N} วัน`);
   clearInterval(playTimer);
   if(on){
-    if(state.day>=9) setDay(0);
-    playTimer=setInterval(()=>{ if(state.day>=9){setPlaying(false);return;} setDay(state.day+1); },1500);
+    if(state.day>=LAST) setDay(0);
+    playTimer=setInterval(()=>{ if(state.day>=LAST){setPlaying(false);return;} setDay(state.day+1); },1500);
   }
 }
 $('play').addEventListener('click',()=>setPlaying(!state.playing));
@@ -524,13 +569,13 @@ function renderInfo(){
 function renderPanel(){
   const d=state.day, today=d===0;
   const k=$('kind'); k.textContent= today?'ค่าปัจจุบัน · ตรวจวัด 06:00 น.':'ค่าคาดการณ์ตามแผน'; k.classList.toggle('fc',!today);
-  $('dayTitle').textContent=`${WD_L[d]} ${DATE[d]} ต.ค. 2569`;
+  $('dayTitle').textContent=dLong(d);
   $('dayNo').textContent='Day '+d;
-  $('dayShort').textContent=`${WD_S[d]} ${DATE[d]} ต.ค.`;
+  $('dayShort').textContent=`${wdS(d)} ${dShort(d)}`;
   $('daySub').textContent= today?'วันนี้ · ค่าตรวจวัด':'คาดการณ์ Day '+d;
   document.querySelectorAll('#ticks span').forEach(s=>s.classList.toggle('on',+s.dataset.i===d));
   slider.value=d;
-  slider.setAttribute('aria-valuetext',`${DATE[d]} ตุลาคม 2569`);
+  slider.setAttribute('aria-valuetext',`${DT[d].d} ${TH_MF[DT[d].m]} ${DT[d].y+543}`);
 
   const diff=D.net[d]-D.release[d];
   $('balance').innerHTML=`
@@ -540,49 +585,52 @@ function renderPanel(){
     <dt><span class="op"></span><span class="lb"><span class="sw" style="background:var(--s-release)"></span>แผนระบายท้ายเขื่อน</span></dt><dd class="v" style="margin:0">${fmt(D.release[d])}</dd>
     <dt><span class="op"></span><span class="lb">ส่วนต่าง (สุทธิ − ระบาย)</span></dt><dd class="v" style="margin:0">${sgn(diff)}</dd>`;
   let msg = diff>30 ? '<strong>น้ำเข้ามากกว่าที่ระบาย</strong> น้ำสะสมหน้าเขื่อน' : diff<-30 ? '<strong>ระบายมากกว่าน้ำเข้า</strong> น้ำหน้าเขื่อนพร่องลง' : '<strong>ใกล้สมดุล</strong> น้ำเข้าเท่ากับที่ระบายโดยประมาณ';
-  if(d<9){const ch=D.pool[d+1]-D.pool[d]; msg+=` · ระดับ 06:00 น. วันถัดไป ${lvl(D.pool[d+1])} (${ch>=0?'+':'−'}${Math.abs(ch).toFixed(2)} ม.)`;}
-  else msg+=' · สิ้นสุดช่วงคาดการณ์ ระดับเข้าใกล้เป้าหมาย +15.80';
+  if(d<LAST){const ch=D.pool[d+1]-D.pool[d]; msg+=` · ระดับ 06:00 น. วันถัดไป ${lvl(D.pool[d+1])} (${ch>=0?'+':'−'}${Math.abs(ch).toFixed(2)} ม.)`;}
+  else msg+=` · สิ้นสุดช่วงคาดการณ์ ระดับ${D.pool[d]<=POOL_TGT+0.15?'เข้าใกล้':'ยังสูงกว่า'}เป้าหมาย ${lvl(POOL_TGT)}`;
   $('verdict').innerHTML=msg+'<br><span class="unit">ค่ารายวันเป็นค่า 06:00 น. แบบจำลองคำนวณรายชั่วโมง ทิศทางระดับจึงอาจไม่ตรงกับส่วนต่างทุกวัน</span>';
 
   $('poolV').textContent=lvl(D.pool[d]);
   const pd=D.pool[d]-D.pool[0];
-  $('poolD').textContent= d===0 ? 'สูงกว่าเป้าหมาย '+(D.pool[0]-POOL_TGT).toFixed(2)+' ม.' : `เทียบวันนี้ ${pd>=0?'+':'−'}${Math.abs(pd).toFixed(2)} ม.`;
-  const gx=v=>((v-15.5)/(17.0-15.5)*100).toFixed(2)+'%';
+  $('poolD').textContent= d===0 ? (D.pool[0]>=POOL_TGT?'สูงกว่า':'ต่ำกว่า')+'เป้าหมาย '+Math.abs(D.pool[0]-POOL_TGT).toFixed(2)+' ม.' : `เทียบวันนี้ ${pd>=0?'+':'−'}${Math.abs(pd).toFixed(2)} ม.`;
+  const gx=v=>(clamp((v-POOL_DOM[0])/(POOL_DOM[1]-POOL_DOM[0]),0,1)*100).toFixed(2)+'%';
   $('gaugeFill').style.width=gx(D.pool[d]);
   if(!$('gauge').querySelector('.mk')){
     $('gauge').insertAdjacentHTML('beforeend',`<span class="mk crit" style="left:${gx(POOL_MAX)}"></span><span class="mk warn" style="left:${gx(POOL_CTRL)}"></span><span class="mk good" style="left:${gx(POOL_TGT)}"></span>`);
   }
 
   $('divTot').textContent=fmt(D.div[d])+' ลบ.ม./วินาที';
-  const gRow=g=>`<div class="gate ${g.q[d]<g.q[0]?'cut':''}"><span class="nm" title="${g.name}">${g.name}</span><span class="bar"><i style="width:${(g.q[d]/145*100).toFixed(1)}%"></i></span><span class="v">${g.q[d]}</span></div>`;
+  const gRow=g=>`<div class="gate ${g.q[d]<g.q[0]?'cut':''}"><span class="nm" title="${g.name}">${g.name}</span><span class="bar"><i style="width:${(g.q[d]/GATE_MAX*100).toFixed(1)}%"></i></span><span class="v">${g.q[d]}</span></div>`;
   $('gates').innerHTML=`<div class="grp">ฝั่งตะวันออก (ซ้าย)</div>${GATES.filter(g=>g.side<0).map(gRow).join('')}<div class="grp">ฝั่งตะวันตก (ขวา)</div>${GATES.filter(g=>g.side>0).map(gRow).join('')}`;
 
   const rows=STATIONS.map(s=>{const v=s.lv[d],[c,l]=stStatus(v,s.bank);return `<tr><td><b>${s.code}</b> ${s.name}</td><td>${lvl(v)}</td><td>${lvl(s.bank)}</td><td>${(s.bank-v).toFixed(2)}</td><td><span class="pill ${c}">${l}</span></td></tr>`;});
   const [rc,rl]=r8Status(D.rama8[d]);
-  rows.push(`<tr><td>พระราม 8 <span class="unit">${D.rama8t[d]} น.</span></td><td>${lvl(D.rama8[d])}</td><td>${lvl(R8_BANK)}</td><td>${(R8_BANK-D.rama8[d]).toFixed(2)}</td><td><span class="pill ${rc}">${rl}</span></td></tr>`);
+  rows.push(`<tr><td>พระราม 8 <span class="unit">${D.rama8t[d]?D.rama8t[d]+' น.':''}</span></td><td>${lvl(D.rama8[d])}</td><td>${lvl(R8_BANK)}</td><td>${(R8_BANK-D.rama8[d]).toFixed(2)}</td><td><span class="pill ${rc}">${rl}</span></td></tr>`);
   rows.push(`<tr><td>สันดอน <span class="unit">น้ำขึ้นสูงสุด</span></td><td>${lvl(D.tide[d])}</td><td>–</td><td>–</td><td></td></tr>`);
   $('stRows').innerHTML=rows.join('');
 }
 
 /* ---------------- charts ---------------- */
 const CW=640, CH=230, M={l:46,r:14,t:16,b:28};
-const cx=i=>M.l+i*(CW-M.l-M.r)/9;
+const cx=i=>M.l+i*(CW-M.l-M.r)/LAST;
 function chart(el,cfg){
   const y=v=>M.t+(cfg.dom[1]-v)/(cfg.dom[1]-cfg.dom[0])*(CH-M.t-M.b);
   let s=`<svg viewBox="0 0 ${CW} ${CH}" role="img" aria-label="${cfg.aria}">`;
-  // plan-cut band (release reduced from 21 Oct)
-  s+=`<rect class="cutband" x="${cx(4.5)}" y="${M.t}" width="${cx(9)-cx(4.5)+6}" height="${CH-M.t-M.b}"></rect>`;
-  s+=`<text class="axis-t" x="${cx(4.5)+5}" y="${M.t+11}">ลดการระบาย →</text>`;
+  // band from the first day the planned release changes
+  if(CUT>0){
+    s+=`<rect class="cutband" x="${cx(CUT-0.5)}" y="${M.t}" width="${cx(LAST)-cx(CUT-0.5)+6}" height="${CH-M.t-M.b}"></rect>`;
+    s+=`<text class="axis-t" x="${cx(CUT-0.5)+5}" y="${CH-M.b-6}">${D.release[CUT]<D.release[0]?'ลด':'เพิ่ม'}การระบาย →</text>`;
+  }
   cfg.ticks.forEach(t=>{s+=`<line class="grid" x1="${M.l}" x2="${CW-M.r}" y1="${y(t)}" y2="${y(t)}"></line><text class="axis-t" x="${M.l-6}" y="${y(t)+4}" text-anchor="end">${cfg.tf(t)}</text>`;});
-  DATE.forEach((d,i)=>{s+=`<text class="axis-t" x="${cx(i)}" y="${CH-8}" text-anchor="middle">${d}${i===0?' ต.ค.':''}</text>`;});
+  const every=Math.ceil(N/12);
+  DT.forEach((t,i)=>{if(i%every===0||i===LAST)s+=`<text class="axis-t" x="${cx(i)}" y="${CH-8}" text-anchor="middle">${t.d}${i===0||t.m!==DT[i-1].m?' '+TH_M[t.m]:''}</text>`;});
   (cfg.thr||[]).forEach(t=>{s+=`<line class="thr" style="stroke:var(--${t.c})" x1="${M.l}" x2="${CW-M.r}" y1="${y(t.v)}" y2="${y(t.v)}"></line><text class="axis-t" style="fill:var(--${t.c})" x="${CW-M.r}" y="${y(t.v)-4}" text-anchor="end">${t.l}</text>`;});
   cfg.series.forEach(se=>{
     s+=`<path class="ser" style="stroke:var(${se.c})" d="${se.v.map((v,i)=>(i?'L':'M')+cx(i).toFixed(1)+' '+y(v).toFixed(1)).join(' ')}"></path>`;
-    s+=`<circle cx="${cx(9)}" cy="${y(se.v[9])}" r="4" style="fill:var(${se.c});stroke:var(--panel);stroke-width:2"></circle>`;
+    s+=`<circle cx="${cx(LAST)}" cy="${y(se.v[LAST])}" r="4" style="fill:var(${se.c});stroke:var(--panel);stroke-width:2"></circle>`;
   });
   (cfg.labels||[]).forEach(l=>{s+=`<text class="lbl" x="${cx(l.i)}" y="${y(l.v)+l.dy}" text-anchor="middle">${l.t}</text>`;});
   s+=`<g class="cur"><line class="cursor" y1="${M.t}" y2="${CH-M.b}"></line>${cfg.series.map(se=>`<circle r="5" style="fill:var(${se.c});stroke:var(--panel);stroke-width:2"></circle>`).join('')}</g>`;
-  DATE.forEach((d,i)=>{const w=(CW-M.l-M.r)/9;s+=`<rect class="hit" data-i="${i}" x="${cx(i)-w/2}" y="0" width="${w}" height="${CH}"></rect>`;});
+  DT.forEach((t,i)=>{const w=(CW-M.l-M.r)/LAST;s+=`<rect class="hit" data-i="${i}" x="${cx(i)-w/2}" y="0" width="${w}" height="${CH}"></rect>`;});
   s+='</svg><div class="tip" hidden></div>';
   el.innerHTML=s;
   const svg=el.querySelector('svg'), tip=el.querySelector('.tip'), cur=el.querySelector('.cur');
@@ -593,7 +641,7 @@ function chart(el,cfg){
   el.addEventListener('mousemove',e=>{
     const r=e.target.closest&&e.target.closest('.hit'); if(!r){tip.hidden=true;return;}
     const i=+r.dataset.i;
-    tip.innerHTML=`<div>${WD_S[i]} ${DATE[i]} ต.ค.</div>`+cfg.series.map(se=>`<div><i style="background:var(${se.c})"></i>${se.n} <b>${cfg.vf(se.v[i])}</b></div>`).join('');
+    tip.innerHTML=`<div>${wdS(i)} ${dShort(i)}</div>`+cfg.series.map(se=>`<div><i style="background:var(${se.c})"></i>${se.n} <b>${cfg.vf(se.v[i])}</b></div>`).join('');
     tip.hidden=false;
     const bw=svg.getBoundingClientRect().width;
     const px=cx(i)/CW*bw;
@@ -604,36 +652,49 @@ function chart(el,cfg){
   el.addEventListener('click',e=>{const r=e.target.closest&&e.target.closest('.hit');if(r)setDay(+r.dataset.i,true);});
   return {place};
 }
+function niceScale(lo,hi,steps){
+  const raw=(hi-lo)/4, mag=Math.pow(10,Math.floor(Math.log10(raw)));
+  const step=steps.map(k=>k*mag).find(v=>v>=raw)||10*mag;
+  const a=Math.floor(lo/step)*step, b=Math.ceil(hi/step)*step, ticks=[];
+  for(let v=a;v<=b+step/1e6;v+=step) ticks.push(+v.toFixed(6));
+  return {dom:[a,b],ticks};
+}
+const FLOW_ALL=D.arrive.concat(D.net,D.release);
+const FLOW_SC=niceScale(Math.min(...FLOW_ALL)-80,Math.max(...FLOW_ALL)+80,[1,2,2.5,5,10]);
+const POOL_SC=niceScale(Math.min(POOL_TGT-0.1,...D.pool)-0.05,Math.max(POOL_MAX+0.1,...D.pool)+0.05,[1,2,2.5,5,10]);
+const POOL_DOM=POOL_SC.dom;
+const GATE_MAX=Math.max(1,...GATES.flatMap(g=>g.q));
+const LK=Math.min(2,LAST);
 const flowC=chart($('flowChart'),{
-  aria:'กราฟอัตราการไหล น้ำไหลมาถึง น้ำสุทธิ และแผนระบาย 16 ถึง 25 ตุลาคม',
-  dom:[1200,2500],ticks:[1200,1600,2000,2400],tf:fmt,vf:fmt,
+  aria:`กราฟอัตราการไหล น้ำไหลมาถึง น้ำสุทธิ และแผนระบาย ${RANGE}`,
+  dom:FLOW_SC.dom,ticks:FLOW_SC.ticks,tf:fmt,vf:fmt,
   series:[{n:'มาถึงหน้าเขื่อน',c:'--s-arrive',v:D.arrive},{n:'สุทธิ',c:'--s-net',v:D.net},{n:'ระบาย',c:'--s-release',v:D.release}],
-  labels:[{i:1.6,v:D.arrive[2],dy:-10,t:'มาถึง'},{i:2,v:D.net[2],dy:-10,t:'สุทธิ'},{i:2,v:1800,dy:17,t:'ระบาย'}]
+  labels:[{i:LK,v:D.arrive[LK],dy:-10,t:'มาถึง'},{i:LK,v:D.net[LK],dy:D.net[LK]>=D.release[LK]?-10:17,t:'สุทธิ'},{i:LK,v:D.release[LK],dy:D.net[LK]>=D.release[LK]?17:-10,t:'ระบาย'}]
 });
 const poolC=chart($('poolChart'),{
-  aria:'กราฟระดับน้ำเหนือเขื่อนตามแผน 16 ถึง 25 ตุลาคม',
-  dom:[15.6,17.0],ticks:[15.6,16.0,16.4,16.8],tf:v=>v.toFixed(1),vf:v=>lvl(v),
-  thr:[{v:POOL_MAX,c:'crit',l:'สูงสุดที่ยอมรับ +16.80'},{v:POOL_CTRL,c:'warn',l:'ควบคุม +16.00'},{v:POOL_TGT,c:'good',l:'เป้าหมาย +15.80'}],
+  aria:`กราฟระดับน้ำเหนือเขื่อนตามแผน ${RANGE}`,
+  dom:POOL_SC.dom,ticks:POOL_SC.ticks,tf:v=>v.toFixed(1),vf:v=>lvl(v),
+  thr:[{v:POOL_MAX,c:'crit',l:'สูงสุดที่ยอมรับ '+lvl(POOL_MAX)},{v:POOL_CTRL,c:'warn',l:'ควบคุม '+lvl(POOL_CTRL)},{v:POOL_TGT,c:'good',l:'เป้าหมาย '+lvl(POOL_TGT)}],
   series:[{n:'ระดับเหนือเขื่อน',c:'--accent',v:D.pool}]
 });
 
 /* full table */
 (function(){
-  const head=`<thead><tr><th>รายการ</th>${DATE.map((d,i)=>`<th>${WD_S[i]} ${d}</th>`).join('')}</tr></thead>`;
+  const head=`<thead><tr><th>รายการ</th>${DT.map((t,i)=>`<th>${wdS(i)} ${dShort(i)}</th>`).join('')}</tr></thead>`;
   const row=(name,arr,f)=>`<tr><th>${name}</th>${arr.map(v=>`<td>${f(v)}</td>`).join('')}</tr>`;
-  const grp=t=>`<tr class="grp"><th colspan="11">${t}</th></tr>`;
+  const grp=t=>`<tr class="grp"><th colspan="${N+1}">${t}</th></tr>`;
   $('fullTable').innerHTML=head+'<tbody>'+
     grp('อัตราการไหล (ลบ.ม./วินาที)')+
     row('น้ำไหลมาถึงหน้าเขื่อน',D.arrive,fmt)+row('ผันเข้าระบบชลประทานรวม',D.div,fmt)+row('น้ำไหลเข้าสุทธิ',D.net,fmt)+row('แผนระบายท้ายเขื่อน',D.release,fmt)+
     grp('รับน้ำราย ปตร. (ลบ.ม./วินาที)')+GATES.map(g=>row(g.name+(g.side<0?' (ตะวันออก)':' (ตะวันตก)'),g.q,v=>v)).join('')+
     grp('ระดับน้ำ (ม.รทก.)')+row('เหนือเขื่อน 06:00 น.',D.pool,lvl)+
     STATIONS.map(s=>row(`${s.code} ${s.name} (ตลิ่ง ${lvl(s.bank)})`,s.lv,lvl)).join('')+
-    row('พระราม 8 สูงสุด (ตลิ่งวิกฤต +3.25)',D.rama8,lvl)+row('เวลาสูงสุด พระราม 8',D.rama8t,v=>v)+row('สันดอน น้ำขึ้นสูงสุด',D.tide,lvl)+
+    row(`พระราม 8 สูงสุด (ตลิ่งวิกฤต ${lvl(R8_BANK)})`,D.rama8,lvl)+row('เวลาสูงสุด พระราม 8',D.rama8t,v=>v||'–')+row('สันดอน น้ำขึ้นสูงสุด',D.tide,lvl)+
     '</tbody>';
 })();
 
 function setDay(i,stopPlay){
-  i=clamp(i|0,0,9);
+  i=clamp(i|0,0,LAST);
   if(stopPlay&&state.playing) setPlaying(false);
   state.day=i;
   renderPanel(); renderInfo();
@@ -675,7 +736,7 @@ function init3D(){
     return {pool:lerpArr(D.pool,f), k:[[S_DAM+0.004,9.0+(rel-1400)/800],[0.64,st[0]],[0.71,st[1]],[0.79,st[2]],[0.862,st[3]],[S_R8,lerpArr(D.rama8,f)],[1,lerpArr(D.tide,f)]]};
   }
   const waterAt=(s,K)=> s<=S_DAM ? K.pool : pw(K.k,s);
-  const KD=DATE.map((_,i)=>knots(i));
+  const KD=DT.map((_,i)=>knots(i));
   const bedS=RS.map(r=>Math.min(...KD.map(K=>waterAt(r.s,K)))-1.9);
 
   /* tributaries */
@@ -798,7 +859,7 @@ function init3D(){
   const sprite=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const gr=x.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(0.45,'rgba(255,255,255,.85)');gr.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);})();
   const DEN=0.0009;
   const streams=[];
-  function riverStream(s0,s1,flowFn){const len=(s1-s0)*curve.getLength();streams.push({len,flow:flowFn,den:DEN,speed:6,maxF:Math.max(...DATE.map((_,i)=>flowFn(i))),
+  function riverStream(s0,s1,flowFn){const len=(s1-s0)*curve.getLength();streams.push({len,flow:flowFn,den:DEN,speed:6,maxF:Math.max(...DT.map((_,i)=>flowFn(i))),
     at:(u,lat,K,o)=>{const s=s0+u*(s1-s0),b=sampleAt(s);o.x=b.x+b.nx*lat*b.hw*0.8;o.z=b.z+b.nz*lat*b.hw*0.8;o.y=waterAt(s,K)*VS+0.06;}});}
   riverStream(0,S_DAM+0.0001,f=>lerpArr(D.arrive,f));
   riverStream(S_DAM+0.0001,S_JOIN,f=>lerpArr(D.release,f));
@@ -861,7 +922,7 @@ function init3D(){
   addTag('pool','dam',false,()=>{const b=sampleAt(S_DAM-0.09);return [b.x,K.pool*VS+1.4,b.z];},d=>{const v=D.pool[d];const c=v>=POOL_MAX?'crit':v>POOL_CTRL?'warn':'good';return `<span class="dot ${c}"></span>เหนือเขื่อน <b>${lvl(v)}</b>`;});
   tribs.forEach(T=>{const j=T.kind==='canal'?Math.min(T.S.length-1,26):18, p=T.S[j];
     if(T.kind==='canal') addTag(T.def.id,'canals',true,()=>[p.x,T.water(p.u,j,K.pool,K)*VS+1.2,p.z],d=>`${T.def.name} <b>${T.def.q[d]}</b>`);
-    else addTag('pasak','down',false,()=>[p.x,T.water(p.u,j,K.pool,K)*VS+1.6,p.z],d=>`แม่น้ำป่าสัก <b>~${fmt(D.pasak[d])}</b>`);});
+    else addTag('pasak','down',false,()=>[p.x,T.water(p.u,j,K.pool,K)*VS+1.6,p.z],d=>HAS_PASAK?`แม่น้ำป่าสัก <b>~${fmt(D.pasak[d])}</b>`:'แม่น้ำป่าสัก');});
   STATIONS.forEach((st,k)=>addTag(st.id,'tidal',false,()=>{const b=sampleAt(st.s);return [b.x+b.nx*(b.hw+0.9),(st.bank+0.9)*VS+(k%2?2.2:0),b.z+b.nz*(b.hw+0.9)];},
     d=>{const [c]=stStatus(st.lv[d],st.bank);return `<span class="dot ${c}"></span>${st.code} ${st.name} <b>${lvl(st.lv[d])}</b>`;}));
   addTag('rama8','rama8',false,()=>{const b=sampleAt(S_R8);return [b.x+b.nx*(b.hw+2),deckY+8.4,b.z+b.nz*(b.hw+2)];},d=>{const [c]=r8Status(D.rama8[d]);return `<span class="dot ${c}"></span>สะพานพระราม 8 <b>${lvl(D.rama8[d])}</b>`;});
@@ -932,6 +993,11 @@ function init3D(){
 }
 
 /* boot */
+document.querySelector('header.top .eyebrow').textContent=`แผนการระบายน้ำเขื่อนเจ้าพระยา · ${RANGE}`;
+$('stamp').textContent=(DS.source&&DS.source.stamp)||`แผนวันที่ ${dYear(0)}`;
+$('tableSummary').textContent=`ตารางข้อมูลทั้งหมด ${RANGE}`;
+$('srcDoc').textContent=`“${(DS.source&&DS.source.title)||'แผนการระบายน้ำเขื่อนเจ้าพระยา '+dYear(0)}”`;
+$('pasakNote').textContent=HAS_PASAK?` (เอกสารระบุ ${fmt(NOTES.pasakFrom)} → ${fmt(NOTES.pasakTo)} ลบ.ม./วินาที)`:' (เอกสารไม่ระบุ ใช้ค่าคงที่เพื่อแสดงภาพ)';
 renderPanel(); renderInfo(); flowC.place(0); poolC.place(0);
 try{ scene3d=init3D(); setFocus('overview',false); }
 catch(err){
@@ -939,6 +1005,9 @@ catch(err){
   $('stage').insertAdjacentHTML('beforeend','<div class="stage-fallback">ไม่สามารถแสดงภาพ 3 มิติในเบราว์เซอร์นี้ (ต้องใช้ WebGL) ค่าในแผงด้านข้างและกราฟยังใช้งานได้ตามปกติ</div>');
   $('hint').hidden=true; $('resetView').hidden=true;
 }
+} // start
+
+return {start, DEFAULT_DATA};
 })();
 </script>
 <script>
@@ -951,7 +1020,7 @@ const thaiDate=iso=>{const [y,m,d]=iso.split('-').map(Number);return `${d} ${TH_
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtUp=iso=>{try{return new Date(iso).toLocaleString('th-TH',{day:'numeric',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'});}catch(e){return '';}};
 const store={get(k){try{return sessionStorage.getItem(k)||'';}catch(e){return '';}},set(k,v){try{sessionStorage.setItem(k,v);}catch(e){}}};
-let plans=[], canUpload=false, apiOK=false, current=null, thumbBlob=null, viewToken=0;
+let plans=[], canUpload=false, apiOK=false, current=null, thumbBlob=null, parsed=null, viewToken=0, booted=false, shownId=null;
 
 let pdfjsP=null;
 function loadPdfjs(){
@@ -982,8 +1051,35 @@ async function refresh(){
     if(!r.ok||!(r.headers.get('content-type')||'').includes('json')) throw new Error('no api');
     const j=await r.json(); plans=j.plans||[]; canUpload=!!j.canUpload; apiOK=true;
   }catch(e){apiOK=false;}
+  if(!booted) await bootModel();
   render();
 }
+
+/* Shows the plan named in the URL (#plan-<id>) or the newest plan that has numbers. */
+async function bootModel(){
+  booted=true;
+  let data=null, plan=null;
+  const withData=plans.filter(p=>p.data);
+  if(apiOK&&withData.length){
+    const want=(location.hash.match(/^#plan-([A-Za-z0-9-]+)$/)||[])[1];
+    plan=(want&&withData.find(p=>p.id===want))||withData[0];
+    try{
+      const r=await fetch(plan.data); if(!r.ok) throw new Error('data '+r.status);
+      data=await r.json(); window.PlanParser.validate(data);
+    }catch(e){ console.error(e); data=null; plan=null; }
+  }
+  try{ window.ChaoPhraya3D.start(data); }
+  catch(e){ console.error(e); if(data){ plan=null; window.ChaoPhraya3D.start(null); } }
+  shownId=plan?plan.id:null;
+  const note=$('planNote');
+  if(plan){
+    const latest=plan.id===withData[0].id;
+    note.innerHTML=`ภาพ 3 มิติ กราฟ และตาราง แสดงข้อมูลจากแผนวันที่ <strong>${thaiDate(plan.date)}</strong>${latest?' (ฉบับล่าสุด)':` · <a href="#" id="toLatest">ดูฉบับล่าสุด</a>`}`;
+    note.hidden=false;
+    const a=$('toLatest'); if(a) a.addEventListener('click',e=>{e.preventDefault();showPlan(withData[0].id);});
+  }
+}
+function showPlan(id){ location.hash='plan-'+id; location.reload(); }
 function render(){
   const list=$('archiveList');
   $('uploadBtn').hidden=!apiOK;
@@ -991,9 +1087,10 @@ function render(){
   if(!plans.length){list.innerHTML='<p class="empty">ยังไม่มีแผนในคลัง กด “อัปโหลด PDF” เพื่อเพิ่มฉบับแรก</p>';return;}
   list.innerHTML=plans.map((p,i)=>`<button type="button" class="plan-card" data-id="${esc(p.id)}" aria-label="ดูแผนการระบาย ${thaiDate(p.date)}">
     <span class="thumb">${p.thumb?`<img src="${esc(p.thumb)}" alt="" loading="lazy">`:'<span class="nothumb">PDF</span>'}</span>
-    ${i===0?'<span class="pc-badge">ล่าสุด</span>':''}
+    ${i===0?'<span class="pc-badge">ล่าสุด</span>':''}${p.id===shownId?'<span class="pc-badge show">กำลังแสดง</span>':''}
     <span class="pc-date">${thaiDate(p.date)}</span>
-    <span class="pc-sub">${p.uploaded?'อัปโหลด '+esc(fmtUp(p.uploaded)):''}</span></button>`).join('');
+    <span class="pc-sub">${p.uploaded?'อัปโหลด '+esc(fmtUp(p.uploaded)):''}</span>
+    ${p.data?'':'<span class="pc-flag">มีเฉพาะไฟล์ PDF ไม่ได้ใช้กับภาพ 3 มิติ</span>'}</button>`).join('');
 }
 $('archiveList').addEventListener('click',e=>{const b=e.target.closest('.plan-card');if(b)openPlan(b.dataset.id);});
 
@@ -1003,6 +1100,7 @@ async function openPlan(id){
   current=p; const tok=++viewToken;
   $('viewTitle').textContent='แผนการระบาย '+thaiDate(p.date);
   $('viewOpen').href=p.pdf;
+  $('viewShow').hidden=!p.data||p.id===shownId;
   $('viewDelete').hidden=!canUpload; $('delForm').hidden=true; $('delMsg').textContent='';
   const pages=$('viewPages'); pages.innerHTML='<p class="empty">กำลังเปิดเอกสาร…</p>';
   $('viewDlg').showModal();
@@ -1022,6 +1120,7 @@ async function openPlan(id){
   }catch(e){ if(tok===viewToken) pages.innerHTML='<p class="empty">แสดงเอกสารในหน้านี้ไม่ได้ กด “เปิดไฟล์ PDF” เพื่อเปิดในแท็บใหม่</p>'; }
 }
 $('viewClose').addEventListener('click',()=>$('viewDlg').close());
+$('viewShow').addEventListener('click',()=>{ if(current) showPlan(current.id); });
 $('viewDlg').addEventListener('close',()=>{viewToken++;$('viewPages').innerHTML='';});
 $('viewDlg').addEventListener('click',e=>{if(e.target===$('viewDlg'))$('viewDlg').close();});
 
@@ -1036,7 +1135,9 @@ $('delForm').addEventListener('submit',async e=>{
     const r=await fetch('/api/plans/'+encodeURIComponent(current.id),{method:'DELETE',headers:{Authorization:'Bearer '+encodeURIComponent(pass)}});
     const j=await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(j.error||'ลบไม่สำเร็จ ('+r.status+')');
-    store.set('upPass',pass); $('viewDlg').close(); await refresh();
+    store.set('upPass',pass); $('viewDlg').close();
+    if(current.id===shownId){ location.hash=''; location.reload(); return; }
+    await refresh();
     $('archiveNote').textContent='ลบแผนวันที่ '+thaiDate(current.date)+' แล้ว';
   }catch(err){$('delMsg').textContent=err.message;}
   finally{$('delOk').disabled=false;}
@@ -1044,11 +1145,11 @@ $('delForm').addEventListener('submit',async e=>{
 
 /* upload */
 function upMsg(t,err){const m=$('upMsg');m.textContent=t;m.classList.toggle('err',!!err);}
-function resetUpload(){ $('uploadForm').reset(); thumbBlob=null; $('upThumb').hidden=true; $('upThumbNote').textContent='เลือกไฟล์เพื่อดูภาพย่อหน้าแรก'; upMsg(''); }
+function resetUpload(){ $('uploadForm').reset(); thumbBlob=null; parsed=null; $('upParse').hidden=true; $('upThumb').hidden=true; $('upThumbNote').textContent='เลือกไฟล์เพื่อดูภาพย่อหน้าแรก'; upMsg(''); }
 $('uploadBtn').addEventListener('click',()=>{resetUpload();$('upPass').value=store.get('upPass');$('uploadDlg').showModal();});
 $('upCancel').addEventListener('click',()=>$('uploadDlg').close());
 $('upFile').addEventListener('change',async()=>{
-  const f=$('upFile').files[0]; thumbBlob=null; $('upThumb').hidden=true; upMsg('');
+  const f=$('upFile').files[0]; thumbBlob=null; parsed=null; $('upParse').hidden=true; $('upThumb').hidden=true; upMsg('');
   if(!f) return;
   $('upThumbNote').textContent='กำลังอ่านไฟล์…';
   try{
@@ -1066,6 +1167,22 @@ $('upFile').addEventListener('change',async()=>{
     thumbBlob=await new Promise(r=>c.toBlob(r,'image/jpeg',0.85));
     if(thumbBlob){$('upThumb').src=URL.createObjectURL(thumbBlob);$('upThumb').hidden=false;}
     $('upThumbNote').textContent= d ? `พบวันที่ในเอกสาร: ${thaiDate(d)} (แก้ได้ด้านล่าง)` : 'ไม่พบวันที่ในเอกสาร กรุณาเลือกวันที่ของแผนเอง';
+    // read the plan numbers for the 3D model
+    const box=$('upParse'); box.hidden=false; box.className='up-parse'; box.textContent='กำลังอ่านตัวเลขในแผน…';
+    try{
+      const res=await window.PlanParser.parse(doc); parsed=res.data;
+      const P=parsed, L=P.dates.length-1, f0=v=>Number(v).toLocaleString('en-US'), lv=v=>(v>=0?'+':'−')+Math.abs(v).toFixed(2);
+      box.classList.add('ok');
+      box.innerHTML=`<strong>อ่านตัวเลขได้ครบ ใช้กับภาพ 3 มิติได้</strong>
+        <span>${P.dates.length} วัน (${thaiDate(P.dates[0])} – ${thaiDate(P.dates[L])})</span>
+        <span>แผนระบาย ${f0(P.release[0])} → ${f0(P.release[L])} ลบ.ม./วิ · ระดับเหนือเขื่อน ${lv(P.pool[0])} → ${lv(P.pool[L])}</span>
+        <span>น้ำไหลมาถึง ${f0(P.arrive[0])} → ${f0(P.arrive[L])} · พระราม 8 ${lv(P.rama8[0])} → ${lv(P.rama8[L])}</span>
+        ${res.warnings.length?'<ul>'+res.warnings.map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul>':''}`;
+      if(!d) $('upDate').value=P.dates[0];
+    }catch(err){
+      parsed=null; box.classList.add('bad');
+      box.innerHTML=`<strong>อ่านตัวเลขในแผนไม่ได้</strong><span>${esc(err.message||'รูปแบบเอกสารไม่ตรงกับที่รองรับ')}</span><span>ยังอัปโหลดเก็บในคลังได้ แต่ภาพ 3 มิติจะไม่เปลี่ยน</span>`;
+    }
   }catch(e){ $('upThumbNote').textContent='อ่านไฟล์นี้ไม่ได้ ตรวจสอบว่าเป็นไฟล์ PDF'; }
 });
 $('uploadForm').addEventListener('submit',async e=>{
@@ -1076,13 +1193,17 @@ $('uploadForm').addEventListener('submit',async e=>{
   if(!/^\d{4}-\d{2}-\d{2}$/.test(date)) return upMsg('กรุณาเลือกวันที่ของแผน',true);
   if(!pass) return upMsg('กรุณาใส่รหัสผ่าน',true);
   const fd=new FormData(); fd.append('pdf',f,f.name); fd.append('date',date); if(thumbBlob) fd.append('thumb',thumbBlob,'thumb.jpg');
+  if(parsed) fd.append('data',JSON.stringify(parsed));
   $('upSubmit').disabled=true; upMsg('กำลังอัปโหลด…');
   try{
     const r=await fetch('/api/plans',{method:'POST',headers:{Authorization:'Bearer '+encodeURIComponent(pass)},body:fd});
     const j=await r.json().catch(()=>({}));
     if(!r.ok) throw new Error(j.error||'อัปโหลดไม่สำเร็จ ('+r.status+')');
-    store.set('upPass',pass); $('uploadDlg').close(); await refresh();
-    $('archiveNote').textContent='อัปโหลดแผนวันที่ '+thaiDate(date)+' แล้ว';
+    store.set('upPass',pass); $('uploadDlg').close();
+    // a plan with numbers that is the newest one goes straight into the 3D view
+    if(j.plan&&j.plan.data&&!plans.some(p=>p.data&&p.date>date)){ showPlan(j.plan.id); return; }
+    await refresh();
+    $('archiveNote').textContent='อัปโหลดแผนวันที่ '+thaiDate(date)+' แล้ว'+(parsed?'':' (เก็บเฉพาะไฟล์ PDF)');
   }catch(err){upMsg(err.message,true);}
   finally{$('upSubmit').disabled=false;}
 });

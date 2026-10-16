@@ -6,12 +6,34 @@
 | ส่วน | ไฟล์ |
 |---|---|
 | หน้าเว็บ (Three.js r128, pdf.js 3.11.174 ใน `vendor/`) | `public/index.html` |
+| ตัวอ่านตัวเลขจาก PDF (ใช้ทั้งในเบราว์เซอร์และ Worker) | `public/plan-parser.js` |
 | Cloudflare Worker: API คลังแผน + เสิร์ฟไฟล์ | `worker/index.js`, `wrangler.toml` |
-| แผนฉบับแรก (16 ต.ค. 2569) ที่ใส่ในคลังตอน deploy ครั้งแรก | `seed/` |
+| แผนฉบับแรก (16 ต.ค. 2569) + ตัวเลขที่อ่านแล้ว ที่ใส่ในคลังตอน deploy ครั้งแรก | `seed/` |
 | สคริปต์ deploy | `deploy.sh` |
 
-ไฟล์ PDF และภาพย่อเก็บใน R2 bucket `chao-phraya-3d` ที่ `plans/<วันที่>-<รหัส>.pdf` / `.jpg`
-ภาพย่อสร้างในเบราว์เซอร์จากหน้าแรกของ PDF ตอนอัปโหลด
+ไฟล์ PDF ภาพย่อ และตัวเลขของแผนเก็บใน R2 bucket `chao-phraya-3d` ที่ `plans/<วันที่>-<รหัส>.pdf` / `.jpg` / `.json`
+
+## ภาพ 3 มิติอัปเดตตาม PDF
+
+ตอนอัปโหลด เบราว์เซอร์ใช้ pdf.js + `public/plan-parser.js` อ่านตัวเลขจาก PDF รูปแบบเดียวกับฉบับ 16 ต.ค. 2569 (4 หน้า):
+
+| ข้อมูล | อ่านจาก |
+|---|---|
+| วันที่ แผนระบาย ระดับเหนือเขื่อน พระราม 8 (+เวลา) การผันน้ำรวมและราย ปตร. ข้อมูล C.2 / ป่าสัก | หน้าตาราง “ค่ากำหนดการบริหารจัดการน้ำ” |
+| น้ำไหลมาถึงหน้าเขื่อน และน้ำไหลเข้าสุทธิ | หน้า “ปริมาณน้ำไหลมาถึงหน้าเขื่อน” |
+| น้ำขึ้นสูงสุดที่สันดอน | หน้าแรก กราฟที่ 3 |
+| ระดับ C.29B C.38 C.22A C.12 และระดับตลิ่ง | หน้า “ระดับน้ำสูงสุดรายวัน เขตน้ำขึ้นลง” |
+
+ผลที่อ่านได้จะแสดงให้ตรวจก่อนกดอัปโหลด และตรวจซ้ำที่ Worker (`PlanParser.validate`)
+เว็บแสดงแผนล่าสุดที่มีตัวเลขโดยอัตโนมัติ เลือกฉบับก่อนหน้าได้จากคลัง (ปุ่ม “แสดงในภาพ 3 มิติ”) หรือลิงก์ `#plan-<id>`
+ถ้าอ่านตัวเลขไม่ได้ (เช่น รูปแบบเอกสารเปลี่ยน) ไฟล์ยังเก็บในคลังได้ แต่ภาพ 3 มิติจะไม่เปลี่ยน
+
+ทดสอบตัวอ่านกับไฟล์ในเครื่อง (ต้องมี `pdfjs-dist@3.11.174`):
+
+```bash
+node -e "const pdfjs=require('pdfjs-dist/legacy/build/pdf.js'),P=require('./chao_phraya_3d/public/plan-parser.js'),fs=require('fs');
+pdfjs.getDocument({data:new Uint8Array(fs.readFileSync('chao_phraya_3d/seed/2026-10-16.pdf'))}).promise.then(P.parse).then(r=>console.log(r))"
+```
 
 ## Deploy (GitHub Actions)
 
@@ -35,9 +57,9 @@ Repository secrets (Settings → Secrets and variables → Actions):
 | Method | Path | หมายเหตุ |
 |---|---|---|
 | GET | `/api/plans` | รายการแผน เรียงวันที่ใหม่ → เก่า |
-| POST | `/api/plans` | multipart: `pdf`, `thumb` (JPEG), `date` (YYYY-MM-DD) · header `Authorization: Bearer <รหัสผ่าน>` |
+| POST | `/api/plans` | multipart: `pdf`, `thumb` (JPEG), `date` (YYYY-MM-DD), `data` (JSON ตัวเลขแผน, ไม่บังคับ) · header `Authorization: Bearer <รหัสผ่าน>` |
 | DELETE | `/api/plans/<id>` | header เดียวกับ POST |
-| GET | `/files/plans/<id>.pdf` / `.jpg` | ไฟล์ในคลัง |
+| GET | `/files/plans/<id>.pdf` / `.jpg` / `.json` | ไฟล์ในคลัง |
 
 ## ทดสอบในเครื่อง
 
