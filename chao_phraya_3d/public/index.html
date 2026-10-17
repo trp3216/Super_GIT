@@ -427,7 +427,7 @@ footer.src p{margin:0}
 
   <footer class="src">
     <p>ที่มาของตัวเลข: เอกสาร <span id="srcDoc">“แผนการระบายน้ำเขื่อนเจ้าพระยา 16 ต.ค. 2569”</span> ส่วนบริหารจัดการน้ำ สำนักบริหารจัดการน้ำและอุทกวิทยา กรมชลประทาน ตัวเลขอ่านจากไฟล์ PDF โดยอัตโนมัติ หน้านี้จัดทำเพื่ออธิบายเอกสารดังกล่าว ไม่ใช่ประกาศของหน่วยงาน</p>
-    <p>ภาพ 3 มิติวางตามพิกัดจริง: เส้นลำน้ำเจ้าพระยา ป่าสัก และสะแกกรัง จาก shapefile ในโครงการ ขอบเขตจังหวัดและอำเภอจาก <a href="https://github.com/chingchai/OpenGISData-Thailand" target="_blank" rel="noopener">OpenGISData-Thailand</a> (CC BY 4.0) ตำแหน่งสถานีวัดน้ำเป็นค่าโดยประมาณ ความกว้างลำน้ำและความสูงขยายเพื่อให้มองเห็น แม่น้ำน้อย (จาก ปตร.บรมธาตุ) แม่น้ำท่าจีน (จาก ปตร.พลเทพ) และคลองมะขามเฒ่า (ปตร.มะขามเฒ่า-อู่ทอง และ -กระเสียว แยกช่องน้ำกันตั้งแต่ปากคลอง) ใช้เส้นจริง ช่วงต่อไปยังคลองอู่ทองและคลองกระเสียวที่ไม่มีในข้อมูลวาดเป็นเส้นตรง ส่วน ปตร.มโนรมย์ มหาราช และคลองย่อยเป็นแผนผัง</p>
+    <p>ภาพ 3 มิติวางตามพิกัดจริง: เส้นลำน้ำเจ้าพระยา ป่าสัก และสะแกกรัง จาก shapefile ในโครงการ ขอบเขตจังหวัดและอำเภอจาก <a href="https://github.com/chingchai/OpenGISData-Thailand" target="_blank" rel="noopener">OpenGISData-Thailand</a> (CC BY 4.0) ตำแหน่งสถานีวัดน้ำเป็นค่าโดยประมาณ ความกว้างลำน้ำและความสูงขยายเพื่อให้มองเห็น แม่น้ำน้อย (จาก ปตร.บรมธาตุ) แม่น้ำท่าจีน (จาก ปตร.พลเทพ) และคลองมะขามเฒ่า (ปตร.มะขามเฒ่า-อู่ทอง และ -กระเสียว แยกช่องน้ำกันตั้งแต่ปากคลอง) ใช้เส้นจริง ช่วงต่อไปยังคลองอู่ทองและคลองกระเสียวที่ไม่มีในข้อมูลวาดเป็นเส้นตรง ปตร.มโนรมย์และมหาราชอยู่ฝั่งซ้าย (มหาราชอยู่เหนือเขื่อนเล็กน้อย) คลองของทั้งสองและคลองย่อยเป็นแผนผัง เพราะไม่มีแนวคลองในข้อมูล</p>
     <p>ระดับน้ำท้ายเขื่อนในภาพและอัตราการไหลรายวันของแม่น้ำป่าสัก<span id="pasakNote"> (เอกสารระบุ 440 → 350 ลบ.ม./วินาที)</span> เป็นค่าประมาณเพื่อแสดงภาพเท่านั้น จุดลอยน้ำแสดงความหนาแน่นตามอัตราการไหล (คลองชลประทานใช้มาตราส่วนขยาย 6 เท่า)</p>
   </footer>
 </div>
@@ -449,8 +449,9 @@ const GEO=window.GEO, A=GEO.anchors, RIVER_KM=GEO.riverKm;
 const S_DAM=A.dam, S_JOIN=A.join, S_R8=A.rama8, S_SK=A.skjoin;
 const upDam=km=>S_DAM-km/RIVER_KM; // km above the dam; Makham Thao canal head ≈30 km (Main_canal.shp), others schematic
 const GATE_GEO = [
-  {id:'manorom',   name:'ปตร.มโนรมย์',            side:-1, s:upDam(30), hw:1.0, pts:[[0,0],[1,7],[4,18],[12,30],[22,44]]},
-  {id:'maharaj',   name:'ปตร.มหาราช',             side:-1, s:upDam(11), hw:0.75,pts:[[0,0],[3,5],[10,10],[22,15],[40,19]]},
+  // left (east) bank; no canal lines in the shapefile here, so both are schematic: Manorom heads east, Maharaj runs alongside the river on its own bank
+  {id:'manorom',   name:'ปตร.มโนรมย์',            side:-1, s:upDam(30),  hw:1.0, pts:[[0,0],[1,10],[3,24],[11,38],[22,52]]},
+  {id:'maharaj',   name:'ปตร.มหาราช',             side:-1, s:upDam(1.5), hw:0.75,bank:{spanKm:60, d0:2.0, d1:7}},
   {id:'phonlathep',name:'ปตร.พลเทพ',              side: 1, s:A.thachin, line:'thachin', river:'แม่น้ำท่าจีน', hw:0.8, pts:[[0,0],[0,7],[-2,18],[2,30],[8,44]]},
   // both take water at the head of the Makham Thao canal in separate channels side by side (offset), then part ways
   {id:'uthong',    name:'ปตร.มะขามเฒ่า-อู่ทอง',    side: 1, s:A.makhamthao, hw:0.5, line:'uthong',  via:'คลองมะขามเฒ่า', branch:'คลองมะขามเฒ่า-อู่ทอง', offset:-0.95},
@@ -791,9 +792,18 @@ function init3D(){
     return {def,kind,S,len:c.getLength(),hw:def.hw,bb:[minx-4,maxx+4,minz-4,maxz+4]};
   }
   // Noi and Tha Chin follow their real courses from the regulator; the other canals are schematic
-  const canals=GATES.map(g=>g.line?tribFromLine(GEO[g.line],g.hw,'canal',g):buildTrib(g,'canal'));
-  function tribFromLine(flatArr,hw,kind,def){
-    const P=unflat(flatArr); let L=0; for(let i=1;i<P.length;i++)L+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);
+  const canals=GATES.map(g=>g.line?tribFromLine(GEO[g.line],g.hw,'canal',g):g.bank?bankCanal(g):buildTrib(g,'canal'));
+  // a schematic canal that runs downstream alongside the river on its own bank, drifting away from it
+  function bankCanal(g){
+    const M=90, s0=g.s, span=g.bank.spanKm/RIVER_KM, P=[];
+    for(let k=0;k<=M;k++){const u=k/M, b=sampleAt(Math.min(1,s0+span*u));
+      const d=k===0?b.hw-0.4:b.hw+g.bank.d0+(g.bank.d1-g.bank.d0)*smooth(0,1,u);
+      P.push([b.x+b.nx*g.side*d, b.z+b.nz*g.side*d]);}
+    return tribFromPts(P,g.hw,'canal',g);
+  }
+  function tribFromLine(flatArr,hw,kind,def){return tribFromPts(unflat(flatArr),hw,kind,def);}
+  function tribFromPts(P,hw,kind,def){
+    let L=0; for(let i=1;i<P.length;i++)L+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);
     const n=Math.max(60,Math.ceil(L/0.8)); // dense enough that the carved channel has no gaps
     const off=(def&&def.offset)||0, R=resample(P,n), S=R.pts.map(([x,z],j)=>{const nx=-R.tan[j][1],nz=R.tan[j][0];return {u:j/n,x:x+nx*off,z:z+nz*off,nx,nz};});
     let minx=1e9,maxx=-1e9,minz=1e9,maxz=-1e9;S.forEach(p=>{minx=Math.min(minx,p.x);maxx=Math.max(maxx,p.x);minz=Math.min(minz,p.z);maxz=Math.max(maxz,p.z);});
@@ -916,7 +926,7 @@ function init3D(){
   const box=(w,h,d,mat,x,y,z,parent)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);parent.add(m);return m;};
   const regs=canals.map((T,idx)=>{
     // real intakes (Noi, Tha Chin) sit at the river; schematic ones a little way into their canal so they don't crowd the bend
-    const g=T.def, n=T.S.length-1, j=Math.max(2,Math.min(n-2,Math.round((g.line?2.4:6)/T.len*n))), a=T.S[j];
+    const g=T.def, n=T.S.length-1, j=Math.max(2,Math.min(n-2,Math.round((g.line?2.4:g.bank?1.6:6)/T.len*n))), a=T.S[j];
     const grp=new THREE.Group(); grp.position.set(a.x,0,a.z); grp.rotation.y=Math.atan2(a.nx,a.nz); scene.add(grp);
     grp.userData.focus='gate-'+g.id;
     const hw=T.hw, nb=hw>=0.95?4:hw>=0.75?3:hw>=0.5?2:1, Wc=2*hw+0.6, L=1.3;
