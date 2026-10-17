@@ -427,7 +427,7 @@ footer.src p{margin:0}
 
   <footer class="src">
     <p>ที่มาของตัวเลข: เอกสาร <span id="srcDoc">“แผนการระบายน้ำเขื่อนเจ้าพระยา 16 ต.ค. 2569”</span> ส่วนบริหารจัดการน้ำ สำนักบริหารจัดการน้ำและอุทกวิทยา กรมชลประทาน ตัวเลขอ่านจากไฟล์ PDF โดยอัตโนมัติ หน้านี้จัดทำเพื่ออธิบายเอกสารดังกล่าว ไม่ใช่ประกาศของหน่วยงาน</p>
-    <p>ภาพ 3 มิติวางตามพิกัดจริง: เส้นลำน้ำเจ้าพระยา ป่าสัก และสะแกกรัง จาก shapefile ในโครงการ ขอบเขตจังหวัดและอำเภอจาก <a href="https://github.com/chingchai/OpenGISData-Thailand" target="_blank" rel="noopener">OpenGISData-Thailand</a> (CC BY 4.0) ตำแหน่งสถานีวัดน้ำเป็นค่าโดยประมาณ ความกว้างลำน้ำและความสูงขยายเพื่อให้มองเห็น แม่น้ำน้อย (จาก ปตร.บรมธาตุ) แม่น้ำท่าจีน (จาก ปตร.พลเทพ) และคลองมะขามเฒ่า (ปตร.มะขามเฒ่า-อู่ทอง และ -กระเสียว แยกช่องน้ำกันตั้งแต่ปากคลอง) ใช้เส้นจริง ช่วงต่อไปยังคลองอู่ทองและคลองกระเสียวที่ไม่มีในข้อมูลวาดเป็นเส้นตรง ปตร.มโนรมย์และมหาราชอยู่ฝั่งซ้าย (มหาราชอยู่เหนือเขื่อนเล็กน้อย) คลองของทั้งสองและคลองย่อยเป็นแผนผัง เพราะไม่มีแนวคลองในข้อมูล</p>
+    <p>ภาพ 3 มิติวางตามพิกัดจริง: เส้นลำน้ำเจ้าพระยา ป่าสัก และสะแกกรัง จาก shapefile ในโครงการ ขอบเขตจังหวัดและอำเภอจาก <a href="https://github.com/chingchai/OpenGISData-Thailand" target="_blank" rel="noopener">OpenGISData-Thailand</a> (CC BY 4.0) ตำแหน่งสถานีวัดน้ำเป็นค่าโดยประมาณ ความกว้างลำน้ำและความสูงขยายเพื่อให้มองเห็น แม่น้ำน้อย (จาก ปตร.บรมธาตุ) แม่น้ำท่าจีน (จาก ปตร.พลเทพ) และคลองมะขามเฒ่า (ปตร.มะขามเฒ่า-กระเสียว ที่ปากคลอง และ ปตร.มะขามเฒ่า-อู่ทอง ฝั่งเดียวกันเหนือขึ้นไป แยกช่องน้ำไหลคู่กัน) ใช้เส้นจริง ช่วงต่อไปยังคลองอู่ทองและคลองกระเสียวที่ไม่มีในข้อมูลวาดเป็นเส้นตรง ปตร.มโนรมย์และมหาราชอยู่ฝั่งซ้าย (มหาราชอยู่เหนือเขื่อนเล็กน้อย) คลองของทั้งสองและคลองย่อยเป็นแผนผัง เพราะไม่มีแนวคลองในข้อมูล</p>
     <p>ระดับน้ำท้ายเขื่อนในภาพและอัตราการไหลรายวันของแม่น้ำป่าสัก<span id="pasakNote"> (เอกสารระบุ 440 → 350 ลบ.ม./วินาที)</span> เป็นค่าประมาณเพื่อแสดงภาพเท่านั้น จุดลอยน้ำแสดงความหนาแน่นตามอัตราการไหล (คลองชลประทานใช้มาตราส่วนขยาย 6 เท่า)</p>
   </footer>
 </div>
@@ -453,10 +453,12 @@ const GATE_GEO = [
   {id:'manorom',   name:'ปตร.มโนรมย์',            side:-1, s:upDam(30),  hw:1.0, pts:[[0,0],[1,10],[3,24],[11,38],[22,52]]},
   {id:'maharaj',   name:'ปตร.มหาราช',             side:-1, s:upDam(1.5), hw:0.75,bank:{spanKm:60, d0:2.0, d1:7}},
   {id:'phonlathep',name:'ปตร.พลเทพ',              side: 1, s:A.thachin, line:'thachin', river:'แม่น้ำท่าจีน', hw:0.8, pts:[[0,0],[0,7],[-2,18],[2,30],[8,44]]},
-  // both take water at the head of the Makham Thao canal in separate channels side by side (offset), then part ways
-  {id:'uthong',    name:'ปตร.มะขามเฒ่า-อู่ทอง',    side: 1, s:A.makhamthao, hw:0.5, line:'uthong',  via:'คลองมะขามเฒ่า', branch:'คลองมะขามเฒ่า-อู่ทอง', offset:-0.95},
-  {id:'krasiao',   name:'ปตร.มะขามเฒ่า-กระเสียว',  side: 1, s:A.makhamthao, hw:0.45,line:'krasiao', via:'คลองมะขามเฒ่า', branch:'คลองกระเสียว', offset:0.95},
-  {id:'others',    name:'คลองย่อย / อื่น ๆ',        side: 1, s:upDam(12), hw:0.45,pts:[[0,0],[2,3.5],[6,6],[11,8]]},
+  // both feed the Makham Thao canal in separate channels side by side (offset), then part ways:
+  // the canal hugs the river at first, so each intake leads out from the bank before joining it (lead):
+  // Kra Siao at the canal head on the river side, U Thong on the same bank a little upstream, joining on the outer side
+  {id:'uthong',    name:'ปตร.มะขามเฒ่า-อู่ทอง',    side: 1, s:A.makhamthao-5/RIVER_KM, hw:0.5, line:'uthong',  via:'คลองมะขามเฒ่า', branch:'คลองมะขามเฒ่า-อู่ทอง', offset:0.95, lead:{out:4.5, join:7}},
+  {id:'krasiao',   name:'ปตร.มะขามเฒ่า-กระเสียว',  side: 1, s:A.makhamthao, hw:0.45,line:'krasiao', via:'คลองมะขามเฒ่า', branch:'คลองกระเสียว', offset:-0.95, lead:{out:3, join:7}},
+  {id:'others',    name:'คลองย่อย / อื่น ๆ',        side: 1, s:upDam(8),  hw:0.45,pts:[[0,0],[2,3.5],[6,6],[11,8]]},
   {id:'boromathat',name:'ปตร.บรมธาตุ',            side: 1, s:A.noi, line:'noi', river:'แม่น้ำน้อย', hw:1.0, pts:[[0,0],[3,5],[10,9],[22,13],[38,16]]}
 ];
 const STATION_GEO = [
@@ -541,7 +543,7 @@ const INFO = {
 GATES.forEach(g=>{
   const share=i=>D.div[i]?Math.round(g.q[i]/D.div[i]*100):0;
   INFO['gate-'+g.id]={t:`${g.name} · ${g.side<0?'ฝั่งตะวันออก (ซ้าย)':'ฝั่งตะวันตก (ขวา)'}`,
-    p:`${g.river?`ประตูระบายน้ำต้น${g.river} (แนวลำน้ำในภาพเป็นเส้นจริง)`:g.via?`ประตูระบายน้ำที่ปากคลองมะขามเฒ่า แยกช่องน้ำของตัวเองตั้งแต่ปากคลอง ไหลคู่ไปตามคลองมะขามเฒ่า แล้วส่งต่อเข้า${g.branch} (ช่วงที่ไม่มีในข้อมูลแผนที่วาดเป็นเส้นตรง)`:g.id==='others'?'จุดรับน้ำของคลองย่อยและอื่น ๆ ฝั่งตะวันตก':'ประตูระบายน้ำปากคลองส่งน้ำ'} รับน้ำจากแม่น้ำเจ้าพระยาเหนือเขื่อนเข้าระบบชลประทาน แผนรับน้ำ${g.q[0]===g.q[LAST]?`คงที่ ${fmt(g.q[0])}`:`${trend(g.q[0],g.q[LAST],0)}จาก ${fmt(g.q[0])} เป็น ${fmt(g.q[LAST])}`} ลบ.ม./วินาที บานประตูในภาพยกสูงตามปริมาณรับน้ำของแต่ละวัน (แผนผัง ไม่ใช่ขนาดจริง)`,
+    p:`${g.river?`ประตูระบายน้ำต้น${g.river} (แนวลำน้ำในภาพเป็นเส้นจริง)`:g.via?`ประตูระบายน้ำ${g.id==='uthong'?'เหนือ ปตร.มะขามเฒ่า-กระเสียว ฝั่งเดียวกัน (ตำแหน่งแผนผัง)':'ที่ปากคลองมะขามเฒ่า'} ช่องน้ำของตัวเองไหลคู่ไปตามคลองมะขามเฒ่า แล้วส่งต่อเข้า${g.branch} (ช่วงที่ไม่มีในข้อมูลแผนที่วาดเป็นเส้นตรง)`:g.id==='others'?'จุดรับน้ำของคลองย่อยและอื่น ๆ ฝั่งตะวันตก':'ประตูระบายน้ำปากคลองส่งน้ำ'} รับน้ำจากแม่น้ำเจ้าพระยาเหนือเขื่อนเข้าระบบชลประทาน แผนรับน้ำ${g.q[0]===g.q[LAST]?`คงที่ ${fmt(g.q[0])}`:`${trend(g.q[0],g.q[LAST],0)}จาก ${fmt(g.q[0])} เป็น ${fmt(g.q[LAST])}`} ลบ.ม./วินาที บานประตูในภาพยกสูงตามปริมาณรับน้ำของแต่ละวัน (แผนผัง ไม่ใช่ขนาดจริง)`,
     figs:d=>[['รับน้ำ',fmt(g.q[d])+' ลบ.ม./วิ'],['สัดส่วนของการผันน้ำรวม',share(d)+'%']]};
 });
 const TOUR = [
@@ -801,7 +803,13 @@ function init3D(){
       P.push([b.x+b.nx*g.side*d, b.z+b.nz*g.side*d]);}
     return tribFromPts(P,g.hw,'canal',g);
   }
-  function tribFromLine(flatArr,hw,kind,def){return tribFromPts(unflat(flatArr),hw,kind,def);}
+  function tribFromLine(flatArr,hw,kind,def){const P=unflat(flatArr);return tribFromPts(def&&def.lead?leadIn(P,def):P,hw,kind,def);}
+  // an intake further upstream on the same bank: out from the river, then into the shared canal `join` units down from its head
+  function leadIn(P,g){
+    const b=sampleAt(g.s), at=d=>[b.x+b.nx*g.side*d, b.z+b.nz*g.side*d];
+    let L=0,k=1; for(;k<P.length-1&&L<g.lead.join;k++) L+=Math.hypot(P[k][0]-P[k-1][0],P[k][1]-P[k-1][1]);
+    return [at(b.hw-0.4),at(b.hw+g.lead.out)].concat(P.slice(k));
+  }
   function tribFromPts(P,hw,kind,def){
     let L=0; for(let i=1;i<P.length;i++)L+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);
     const n=Math.max(60,Math.ceil(L/0.8)); // dense enough that the carved channel has no gaps
@@ -926,7 +934,11 @@ function init3D(){
   const box=(w,h,d,mat,x,y,z,parent)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);parent.add(m);return m;};
   const regs=canals.map((T,idx)=>{
     // real intakes (Noi, Tha Chin) sit at the river; schematic ones a little way into their canal so they don't crowd the bend
-    const g=T.def, n=T.S.length-1, j=Math.max(2,Math.min(n-2,Math.round((g.line?2.4:g.bank?1.6:6)/T.len*n))), a=T.S[j];
+    const g=T.def, n=T.S.length-1; let j=Math.max(2,Math.min(n-2,Math.round((g.line?2.4:g.bank?1.6:6)/T.len*n)));
+    // move down the canal until the structure stands clear of the river channel, so it isn't drawn under the pool
+    const clearOf=k=>{const R=landRiver(T.S[k].x,T.S[k].z);return R.d-RS[R.i].hw>T.hw+1.2;};
+    while(j<n/3&&!clearOf(j)) j++;
+    const a=T.S[j];
     const grp=new THREE.Group(); grp.position.set(a.x,0,a.z); grp.rotation.y=Math.atan2(a.nx,a.nz); scene.add(grp);
     grp.userData.focus='gate-'+g.id;
     const hw=T.hw, nb=hw>=0.95?4:hw>=0.75?3:hw>=0.5?2:1, Wc=2*hw+0.6, L=1.3;
