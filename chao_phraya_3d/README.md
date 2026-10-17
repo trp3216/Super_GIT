@@ -10,6 +10,7 @@
 | Cloudflare Worker: API คลังแผน + เสิร์ฟไฟล์ | `worker/index.js`, `wrangler.toml` |
 | แผนฉบับแรก (16 ต.ค. 2569) + ตัวเลขที่อ่านแล้ว ที่ใส่ในคลังตอน deploy ครั้งแรก | `seed/` |
 | สคริปต์ deploy | `deploy.sh` |
+| ข้อมูลภูมิศาสตร์ของฉาก 3 มิติ (สร้างจากสคริปต์) | `public/geo.js` ← `tools/build_geo.py` |
 
 ไฟล์ PDF ภาพย่อ และตัวเลขของแผนเก็บใน R2 bucket `chao-phraya-3d` ที่ `plans/<วันที่>-<รหัส>.pdf` / `.jpg` / `.json`
 
@@ -33,6 +34,25 @@
 ```bash
 node -e "const pdfjs=require('pdfjs-dist/legacy/build/pdf.js'),P=require('./chao_phraya_3d/public/plan-parser.js'),fs=require('fs');
 pdfjs.getDocument({data:new Uint8Array(fs.readFileSync('chao_phraya_3d/seed/2026-10-16.pdf'))}).promise.then(P.parse).then(r=>console.log(r))"
+```
+
+## แผนที่จริงและขอบเขตการปกครอง
+
+ฉาก 3 มิติวางตามพิกัดจริง (UTM 47N, 0.8 หน่วย/กม. ทิศเหนืออยู่ซ้าย) จาก `public/geo.js`:
+
+- เส้นลำน้ำเจ้าพระยา ป่าสัก สะแกกรัง: `แม่น้ำ คลอง/Main_River.shp` (ใช้เส้นตลิ่งฝั่งหนึ่งเป็นแนวลำน้ำ)
+- ขอบเขตจังหวัด/อำเภอ ชื่อไทย: [OpenGISData-Thailand](https://github.com/chingchai/OpenGISData-Thailand) (CC BY 4.0)
+- ตำแหน่งเขื่อนเจ้าพระยา สถานี C.29B C.38 C.22A สะพานพระราม 8 เป็นพิกัดโดยประมาณที่ snap เข้าลำน้ำ ; C.12 วางเหนือพระราม 8 ราว 3 กม. ตามเอกสาร
+- ความกว้างลำน้ำ ความสูง คลองชลประทาน และ ปตร. ยังเป็นแผนผัง
+
+สร้าง `geo.js` ใหม่ (เช่น แก้พิกัดสถานีใน `ANCHORS` ของสคริปต์):
+
+```bash
+pip install pyshp shapely pyproj
+mkdir -p /tmp/gb && cd /tmp/gb
+curl -LO https://raw.githubusercontent.com/chingchai/OpenGISData-Thailand/master/provinces.geojson
+curl -LO https://raw.githubusercontent.com/chingchai/OpenGISData-Thailand/master/districts.geojson
+cd - && python chao_phraya_3d/tools/build_geo.py --boundaries /tmp/gb
 ```
 
 ## Deploy (GitHub Actions)

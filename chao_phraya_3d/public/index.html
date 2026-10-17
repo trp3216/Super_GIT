@@ -16,7 +16,7 @@
   --good:#1d7a43; --warn:#9a6700; --crit:#c2302e;
   --good-bg:#dbeee2; --warn-bg:#f5e8cc; --crit-bg:#f6dbda;
   --sky:#d9e5e5; --land:#b3c391; --land-2:#9cb07c; --bank:#cdb98f; --water:#3b8ec8; --sea:#3a84b6;
-  --paper:#ffffff; --concrete:#d6d2c8; --steel:#55666b; --spark:#ffffff;
+  --paper:#ffffff; --prov:#8a3b78; --dist:#58686d; --concrete:#d6d2c8; --steel:#55666b; --spark:#ffffff;
   --f-display:"Chakra Petch","IBM Plex Sans Thai",system-ui,sans-serif;
   --f-body:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
   --f-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
@@ -28,7 +28,7 @@
   --good:#5cc489; --warn:#e0a83a; --crit:#ef6f6c;
   --good-bg:#16352a; --warn-bg:#3a2f14; --crit-bg:#3f1c1c;
   --sky:#0f1d21; --land:#3a4a31; --land-2:#2e3c27; --bank:#6a5c43; --water:#2e77b6; --sea:#245e8b;
-  --concrete:#8c8981; --steel:#9aa9ad; --spark:#cfe6ff;
+  --concrete:#8c8981; --steel:#9aa9ad; --spark:#cfe6ff; --prov:#e58fd2; --dist:#a6b8bb;
   color-scheme:dark;
 }}
 :root[data-theme="dark"]{
@@ -38,7 +38,7 @@
   --good:#5cc489; --warn:#e0a83a; --crit:#ef6f6c;
   --good-bg:#16352a; --warn-bg:#3a2f14; --crit-bg:#3f1c1c;
   --sky:#0f1d21; --land:#3a4a31; --land-2:#2e3c27; --bank:#6a5c43; --water:#2e77b6; --sea:#245e8b;
-  --concrete:#8c8981; --steel:#9aa9ad; --spark:#cfe6ff;
+  --concrete:#8c8981; --steel:#9aa9ad; --spark:#cfe6ff; --prov:#e58fd2; --dist:#a6b8bb;
   color-scheme:dark;
 }
 *{box-sizing:border-box}
@@ -79,6 +79,14 @@ header.top .lede{max-width:66ch;margin:.35rem 0 0;color:var(--ink-2)}
 .tag:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .stage:not(.show-minor) .tag.minor{display:none}
 .stage-note{position:absolute;left:10px;top:10px;font-size:11.5px;color:var(--ink-2);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 8px;pointer-events:none}
+.geo-label{position:absolute;left:0;top:0;pointer-events:none;white-space:nowrap;font:600 13px var(--f-display);color:var(--prov);
+  text-shadow:0 0 3px var(--panel),0 0 3px var(--panel),0 0 6px var(--panel);will-change:transform}
+.geo-label.dist{font:500 11px var(--f-body);color:var(--dist)}
+.layers{position:absolute;left:10px;top:42px;display:flex;flex-direction:column;gap:4px}
+.layers label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:3px 8px;cursor:pointer}
+.layers input{accent-color:var(--accent);margin:0}
+.layers .sw-prov,.layers .sw-dist{display:inline-block;width:14px;height:0;border-top:3px solid var(--prov)}
+.layers .sw-dist{border-top:2px dashed var(--dist)}
 .stage-hint{position:absolute;right:10px;bottom:10px;font-size:11.5px;color:var(--ink-2);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 8px;pointer-events:none}
 .stage-btn{position:absolute;right:10px;top:10px;font:600 12px var(--f-body);color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
 .stage-btn:hover{border-color:var(--accent)}
@@ -272,7 +280,11 @@ footer.src p{margin:0}
     <div class="main-col">
       <div class="stage" id="stage">
         <div class="tags" id="tags"></div>
-        <div class="stage-note">ภาพแผนผัง ไม่ตามมาตราส่วน · ขยายความสูง</div>
+        <div class="stage-note">แผนที่ตามพิกัดจริง · ขยายความกว้างลำน้ำและความสูง</div>
+        <div class="layers" id="layers">
+          <label for="lyProv"><input type="checkbox" id="lyProv" checked><span class="sw-prov"></span>ขอบเขตจังหวัด</label>
+          <label for="lyDist"><input type="checkbox" id="lyDist" checked><span class="sw-dist"></span>ขอบเขตอำเภอ (ซูมเพื่อดู)</label>
+        </div>
         <button class="stage-btn" id="resetView" type="button">มุมมองรวม</button>
         <div class="stage-hint" id="hint">ลากเพื่อหมุน · เลื่อนหรือบีบเพื่อซูม</div>
       </div>
@@ -415,12 +427,14 @@ footer.src p{margin:0}
 
   <footer class="src">
     <p>ที่มาของตัวเลข: เอกสาร <span id="srcDoc">“แผนการระบายน้ำเขื่อนเจ้าพระยา 16 ต.ค. 2569”</span> ส่วนบริหารจัดการน้ำ สำนักบริหารจัดการน้ำและอุทกวิทยา กรมชลประทาน ตัวเลขอ่านจากไฟล์ PDF โดยอัตโนมัติ หน้านี้จัดทำเพื่ออธิบายเอกสารดังกล่าว ไม่ใช่ประกาศของหน่วยงาน</p>
-    <p>ภาพ 3 มิติเป็นแผนผัง ระยะทางย่อและความสูงขยาย ระดับน้ำท้ายเขื่อนในภาพและอัตราการไหลรายวันของแม่น้ำป่าสัก<span id="pasakNote"> (เอกสารระบุ 440 → 350 ลบ.ม./วินาที)</span> เป็นค่าประมาณเพื่อแสดงภาพเท่านั้น จุดลอยน้ำแสดงความหนาแน่นตามอัตราการไหล (คลองชลประทานใช้มาตราส่วนขยาย 6 เท่า)</p>
+    <p>ภาพ 3 มิติวางตามพิกัดจริง: เส้นลำน้ำเจ้าพระยา ป่าสัก และสะแกกรัง จาก shapefile ในโครงการ ขอบเขตจังหวัดและอำเภอจาก <a href="https://github.com/chingchai/OpenGISData-Thailand" target="_blank" rel="noopener">OpenGISData-Thailand</a> (CC BY 4.0) ตำแหน่งสถานีวัดน้ำเป็นค่าโดยประมาณ ความกว้างลำน้ำและความสูงขยายเพื่อให้มองเห็น คลองชลประทานและ ปตร. เป็นแผนผังที่วางใกล้เขื่อน ไม่ใช่แนวคลองจริง</p>
+    <p>ระดับน้ำท้ายเขื่อนในภาพและอัตราการไหลรายวันของแม่น้ำป่าสัก<span id="pasakNote"> (เอกสารระบุ 440 → 350 ลบ.ม./วินาที)</span> เป็นค่าประมาณเพื่อแสดงภาพเท่านั้น จุดลอยน้ำแสดงความหนาแน่นตามอัตราการไหล (คลองชลประทานใช้มาตราส่วนขยาย 6 เท่า)</p>
   </footer>
 </div>
 
 <script src="vendor/three.min.js"></script>
 <script src="vendor/OrbitControls.js"></script>
+<script src="geo.js"></script>
 <script src="plan-parser.js"></script>
 <script>
 window.ChaoPhraya3D=(function(){
@@ -430,22 +444,25 @@ window.ChaoPhraya3D=(function(){
 const TH_M=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
 const TH_MF=['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
 const WD7_S=['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'], WD7_L=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
+/* positions along the real river (0 = Nakhon Sawan, 1 = river mouth), from geo.js */
+const GEO=window.GEO, A=GEO.anchors, RIVER_KM=GEO.riverKm;
+const S_DAM=A.dam, S_JOIN=A.join, S_R8=A.rama8, S_SK=A.skjoin;
+const upDam=km=>S_DAM-km/RIVER_KM; // intakes are drawn this many km above the dam (schematic)
 const GATE_GEO = [
-  {id:'manorom',   name:'ปตร.มโนรมย์',            side:-1, s:0.130, hw:1.0, pts:[[0,0],[1,7],[4,18],[12,30],[22,44]]},
-  {id:'maharaj',   name:'ปตร.มหาราช',             side:-1, s:0.236, hw:0.75,pts:[[0,0],[3,5],[10,10],[22,15],[40,19]]},
-  {id:'phonlathep',name:'ปตร.พลเทพ',              side: 1, s:0.160, hw:0.8, pts:[[0,0],[0,7],[-2,18],[2,30],[8,44]]},
-  {id:'uthong',    name:'ปตร.มะขามเฒ่า-อู่ทอง',    side: 1, s:0.192, hw:0.5, pts:[[0,0],[2,6],[8,14],[16,24],[24,36]]},
-  {id:'krasiao',   name:'ปตร.มะขามเฒ่า-กระเสียว',  side: 1, s:0.206, hw:0.45,pts:[[0,0],[3,6],[12,11],[24,19],[36,26]]},
-  {id:'others',    name:'คลองย่อย / อื่น ๆ',        side: 1, s:0.224, hw:0.45,pts:[[0,0],[2,3.5],[6,6],[11,8]]},
-  {id:'boromathat',name:'ปตร.บรมธาตุ',            side: 1, s:0.240, hw:1.0, pts:[[0,0],[3,5],[10,9],[22,13],[38,16]]}
+  {id:'manorom',   name:'ปตร.มโนรมย์',            side:-1, s:upDam(30), hw:1.0, pts:[[0,0],[1,7],[4,18],[12,30],[22,44]]},
+  {id:'maharaj',   name:'ปตร.มหาราช',             side:-1, s:upDam(4), hw:0.75,pts:[[0,0],[3,5],[10,10],[22,15],[40,19]]},
+  {id:'phonlathep',name:'ปตร.พลเทพ',              side: 1, s:upDam(22), hw:0.8, pts:[[0,0],[0,7],[-2,18],[2,30],[8,44]]},
+  {id:'uthong',    name:'ปตร.มะขามเฒ่า-อู่ทอง',    side: 1, s:upDam(16), hw:0.5, pts:[[0,0],[2,6],[8,14],[16,24],[24,36]]},
+  {id:'krasiao',   name:'ปตร.มะขามเฒ่า-กระเสียว',  side: 1, s:upDam(11.5), hw:0.45,pts:[[0,0],[3,6],[12,11],[24,19],[36,26]]},
+  {id:'others',    name:'คลองย่อย / อื่น ๆ',        side: 1, s:upDam(7.5), hw:0.45,pts:[[0,0],[2,3.5],[6,6],[11,8]]},
+  {id:'boromathat',name:'ปตร.บรมธาตุ',            side: 1, s:upDam(3.5), hw:1.0, pts:[[0,0],[3,5],[10,9],[22,13],[38,16]]}
 ];
 const STATION_GEO = [
-  {id:'c29b',code:'C.29B',name:'สามโคก',       bank:3.00,s:0.640},
-  {id:'c38', code:'C.38', name:'เมืองปทุมธานี',bank:3.45,s:0.710},
-  {id:'c22a',code:'C.22A',name:'ปากเกร็ด',     bank:2.90,s:0.790},
-  {id:'c12', code:'C.12', name:'สามเสน',       bank:3.25,s:0.862}
+  {id:'c29b',code:'C.29B',name:'สามโคก',       bank:3.00,s:A.c29b},
+  {id:'c38', code:'C.38', name:'เมืองปทุมธานี',bank:3.45,s:A.c38},
+  {id:'c22a',code:'C.22A',name:'ปากเกร็ด',     bank:2.90,s:A.c22a},
+  {id:'c12', code:'C.12', name:'สามเสน',       bank:3.25,s:A.c12}
 ];
-const S_DAM=0.25, S_JOIN=0.52, S_R8=0.885;
 
 /* the 16 Oct 2569 plan (read from its PDF by plan-parser.js); shown when no archived plan data loads */
 const DEFAULT_DATA = {"version":1,"source":{"title":"แผนการระบายน้ำเขื่อนเจ้าพระยา 16 ต.ค. 2569","stamp":"ข้อมูล ณ 16 ต.ค. 2569 · 14:40 น."},"dates":["2026-10-16","2026-10-17","2026-10-18","2026-10-19","2026-10-20","2026-10-21","2026-10-22","2026-10-23","2026-10-24","2026-10-25"],"release":[1800,1800,1800,1800,1800,1700,1700,1600,1500,1400],"arrive":[2280,2341,2379,2318,2210,2076,1926,1811,1755,1720],"net":[1799,1865,1903,1842,1734,1657,1532,1477,1421,1386],"div":[481,476,476,476,476,419,394,334,334,334],"pool":[16.47,16.54,16.65,16.7,16.63,16.54,16.31,16.1,15.96,15.91],"rama8":[1.94,1.86,1.81,1.79,1.81,1.82,1.8,1.76,1.68,1.63],"rama8t":["11:00","12:00","13:00","15:00","16:00","17:00","17:00","17:00","17:00","18:00"],"tide":[0.99,0.95,0.91,0.89,0.93,0.96,0.96,0.92,0.87,0.84],"gates":[{"id":"manorom","q":[145,145,145,145,145,120,100,80,80,80]},{"id":"maharaj","q":[55,55,55,55,55,55,50,50,50,50]},{"id":"phonlathep","q":[75,75,75,75,75,70,70,50,50,50]},{"id":"boromathat","q":[121,120,120,120,120,100,100,80,80,80]},{"id":"uthong","q":[18,17,17,17,17,10,10,10,10,10]},{"id":"krasiao","q":[9,9,9,9,9,9,9,9,9,9]},{"id":"others","q":[58,55,55,55,55,55,55,55,55,55]}],"stations":[{"code":"C.29B","lv":[2.63,2.54,2.47,2.45,2.41,2.37,2.3,2.26,2.18,2.11],"bank":3},{"code":"C.38","lv":[2.36,2.28,2.23,2.21,2.2,2.17,2.11,2.07,1.99,1.93],"bank":3.45},{"code":"C.22A","lv":[2.15,2.11,2.1,2.11,2.13,2.14,2.12,2.09,2.03,1.98],"bank":2.9},{"code":"C.12","lv":[1.94,1.86,1.81,1.79,1.81,1.82,1.8,1.76,1.68,1.63],"bank":3.25}],"thresholds":{"poolMax":16.8,"poolCtrl":16,"poolTgt":15.8,"r8Warn":2.55,"r8Bank":3.25},"notes":{"c2Now":1651,"c2Day":16,"c2Mon":9,"c2Lo":1306,"c2Hi":1470,"pasakFrom":440,"pasakTo":350}};
@@ -732,20 +749,31 @@ function init3D(){
   const V3=THREE.Vector3;
 
   /* river path, north (−x) to sea (+x); +z = west bank, −z = east bank */
-  const ctrl=[[-96,-4],[-82,5],[-68,-3],[-54,3],[-41,0],[-28,-6],[-14,1],[0,-5],[14,4],[28,-1],[40,-8],[52,-1],[63,7],[74,2],[84,-5],[96,0]].map(([x,z])=>new V3(x,0,z));
-  const curve=new THREE.CatmullRomCurve3(ctrl,false,'centripetal');
+  /* river: the real Chao Phraya (geo.js), north (−x) to the sea (+x); +z = west bank, −z = east bank */
+  const unflat=a=>{const o=[];for(let i=0;i<a.length;i+=2)o.push([a[i]/100,a[i+1]/100]);return o;};
+  // resample a polyline to n+1 points evenly spaced along its length, with smoothed tangents
+  function resample(pts,n){
+    const cum=[0];for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+Math.hypot(pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]));
+    const L=cum[cum.length-1], out=[]; let k=0;
+    for(let i=0;i<=n;i++){const d=L*i/n; while(k<pts.length-2&&cum[k+1]<d)k++; const t=(d-cum[k])/Math.max(1e-9,cum[k+1]-cum[k]);
+      out.push([pts[k][0]+(pts[k+1][0]-pts[k][0])*t, pts[k][1]+(pts[k+1][1]-pts[k][1])*t]);}
+    const tan=out.map((p,i)=>{const a=out[Math.max(0,i-3)],b=out[Math.min(n,i+3)],l=Math.hypot(b[0]-a[0],b[1]-a[1])||1;return [(b[0]-a[0])/l,(b[1]-a[1])/l];});
+    return {pts:out,tan,len:L};
+  }
   const NS=480;
-  const widthAt=s=> s<=S_DAM ? 4.6+3.2*smooth(0.05,S_DAM,s) : 4.0+1.6*(s-S_DAM)/(1-S_DAM);
-  const bankAt=s=>pw([[0,18.2],[S_DAM,17.8],[S_DAM+0.03,17.0],[0.45,9.5],[0.55,6.0],[0.64,3.0],[0.71,3.45],[0.79,2.9],[0.862,3.25],[0.9,3.25],[1,1.7]],s);
+  // channel width is exaggerated so it reads at this scale; narrower downstream so Bangkok's bends don't merge
+  const widthAt=s=> s<=S_DAM ? 3.4+2.0*smooth(S_DAM-0.06,S_DAM,s) : pw([[S_DAM,3.2],[S_JOIN,2.8],[A.c22a,2.3],[1,1.8]],s);
+  const bankAt=s=>pw([[0,18.2],[S_DAM,17.8],[S_DAM+0.03,17.0],[(S_DAM+S_JOIN)/2,9.5],[S_JOIN,6.0],[A.c29b,3.0],[A.c38,3.45],[A.c22a,2.9],[A.c12,3.25],[S_R8+0.01,3.25],[1,1.7]],s);
   const RS=[];
-  for(let i=0;i<=NS;i++){const s=i/NS,p=curve.getPointAt(s),t=curve.getTangentAt(s);RS.push({s,x:p.x,z:p.z,nx:-t.z,nz:t.x,tx:t.x,tz:t.z,hw:widthAt(s)/2});}
+  const RIV=resample(unflat(GEO.river),NS), RIVER_LEN=RIV.len;
+  for(let i=0;i<=NS;i++){const s=i/NS,[x,z]=RIV.pts[i],[tx,tz]=RIV.tan[i];RS.push({s,x,z,nx:-tz,nz:tx,tx,tz,hw:widthAt(s)/2});}
   const sampleAt=s=>{const f=clamp(s,0,1)*NS,i=Math.min(Math.floor(f),NS-1),t=f-i,a=RS[i],b=RS[i+1];
     return {x:a.x+(b.x-a.x)*t,z:a.z+(b.z-a.z)*t,nx:a.nx+(b.nx-a.nx)*t,nz:a.nz+(b.nz-a.nz)*t,tx:a.tx,tz:a.tz,hw:a.hw+(b.hw-a.hw)*t};};
 
   /* water profile in metres for a fractional day */
   function knots(f){
     const rel=lerpArr(D.release,f), st=STATIONS.map(s=>lerpArr(s.lv,f));
-    return {pool:lerpArr(D.pool,f), k:[[S_DAM+0.004,9.0+(rel-1400)/800],[0.64,st[0]],[0.71,st[1]],[0.79,st[2]],[0.862,st[3]],[S_R8,lerpArr(D.rama8,f)],[1,lerpArr(D.tide,f)]]};
+    return {pool:lerpArr(D.pool,f), k:[[S_DAM+0.004,9.0+(rel-1400)/800],[STATIONS[0].s,st[0]],[STATIONS[1].s,st[1]],[STATIONS[2].s,st[2]],[STATIONS[3].s,st[3]],[S_R8,lerpArr(D.rama8,f)],[1,lerpArr(D.tide,f)]]};
   }
   const waterAt=(s,K)=> s<=S_DAM ? K.pool : pw(K.k,s);
   const KD=DT.map((_,i)=>knots(i));
@@ -762,15 +790,23 @@ function init3D(){
     return {def,kind,S,len:c.getLength(),hw:def.hw,bb:[minx-4,maxx+4,minz-4,maxz+4]};
   }
   const canals=GATES.map(g=>buildTrib(g,'canal'));
-  const pasakDef={s:S_JOIN,side:-1,hw:1.7,pts:[[-26,44],[-17,31],[-9,17],[-3,6],[0,0]]};
-  const pasak=buildTrib(pasakDef,'river');
-  const tribs=canals.concat([pasak]);
+  function tribFromLine(flatArr,hw,kind){
+    const R=resample(unflat(flatArr),60), S=R.pts.map(([x,z],j)=>({u:j/60,x,z,nx:-R.tan[j][1],nz:R.tan[j][0]}));
+    let minx=1e9,maxx=-1e9,minz=1e9,maxz=-1e9;S.forEach(p=>{minx=Math.min(minx,p.x);maxx=Math.max(maxx,p.x);minz=Math.min(minz,p.z);maxz=Math.max(maxz,p.z);});
+    return {def:{hw},kind,S,len:R.len,hw,bb:[minx-4,maxx+4,minz-4,maxz+4]};
+  }
+  const pasak=tribFromLine(GEO.pasak,1.2,'river');
+  const sakae=tribFromLine(GEO.sakaekrang,0.9,'side');
+  const tribs=canals.concat([pasak,sakae]);
 
   /* land height from the river alone (metres) */
   function nearestRiver(x,z){let bi=0,bd=1e18;for(let i=0;i<=NS;i+=2){const dx=x-RS[i].x,dz=z-RS[i].z,d=dx*dx+dz*dz;if(d<bd){bd=d;bi=i;}}
     for(let i=Math.max(0,bi-2);i<=Math.min(NS,bi+2);i++){const dx=x-RS[i].x,dz=z-RS[i].z,d=dx*dx+dz*dz;if(d<bd){bd=d;bi=i;}}return [bi,Math.sqrt(bd)];}
   const hash=(x,z)=>{const s=Math.sin(x*127.1+z*311.7)*43758.5453;return s-Math.floor(s);};
-  const sOfX=x=>{if(x<=RS[0].x)return 0;if(x>=RS[NS].x)return 1;let a=0,b=NS;while(b-a>1){const m=(a+b)>>1;if(RS[m].x<=x)a=m;else b=m;}return (a+(x-RS[a].x)/(RS[b].x-RS[a].x))/NS;};
+  // position along the river for a north–south coordinate (running max keeps it monotonic where the river bends back)
+  const XM=[];{let mx=-1e9;RS.forEach(r=>{mx=Math.max(mx,r.x);XM.push(mx);});}
+  const sOfX=x=>{if(x<=XM[0])return 0;if(x>=XM[NS])return 1;let a=0,b=NS;while(b-a>1){const m=(a+b)>>1;if(XM[m]<=x)a=m;else b=m;}
+    const dd=XM[b]-XM[a];return (a+(dd>1e-9?(x-XM[a])/dd:0))/NS;};
   function landRiver(x,z){
     const [i,d]=nearestRiver(x,z), r=RS[i], w=r.hw;
     let h=bankAt(sOfX(x))-0.35;
@@ -782,13 +818,15 @@ function init3D(){
   tribs.forEach(T=>{
     T.landS=T.S.map(p=>landRiver(p.x,p.z).h);
     if(T.kind==='canal'){ T.water=(u,j,pool)=>Math.min(pool-0.35-1.4*u, T.landS[j]-0.45); T.bed=T.S.map((p,j)=>T.water(p.u,j,15.91)-0.8); }
-    else { T.water=(u,j,pool,K)=>Math.min(waterAt(S_JOIN,K)+2.4*(1-u), T.landS[j]-0.45); T.bed=T.S.map((p,j)=>Math.min(...KD.map(K=>T.water(p.u,j,0,K)))-1.3); }
+    else { const sj=T.kind==='side'?S_SK:S_JOIN;
+      T.water=(u,j,pool,K)=>Math.min(waterAt(sj,K)+2.4*(1-u), T.landS[j]-0.45); T.bed=T.S.map((p,j)=>Math.min(...KD.map(K=>T.water(p.u,j,0,K)))-1.3); }
   });
 
   /* terrain */
-  const LX0=-110,LX1=100,LZ=130,SEG_X=210,SEG_Z=130;
+  const B=GEO.bounds, LX0=B.x0-4, LX1=B.x1+2, LZ=(B.z1-B.z0)+8, SEG_X=Math.round((LX1-LX0)*1.6), SEG_Z=Math.round(LZ*1.6);
+  const COAST=RS[NS].x;
   const landGeo=new THREE.PlaneGeometry(LX1-LX0,LZ,SEG_X,SEG_Z);
-  landGeo.rotateX(-Math.PI/2); landGeo.translate((LX0+LX1)/2,0,0);
+  landGeo.rotateX(-Math.PI/2); landGeo.translate((LX0+LX1)/2,0,(B.z0+B.z1)/2);
   const lp=landGeo.attributes.position, nV=lp.count;
   const patch=new Float32Array(nV), near=new Float32Array(nV);
   for(let v=0;v<nV;v++){
@@ -802,7 +840,7 @@ function init3D(){
       if(ch>0) h=Math.min(h,h*(1-ch)+T.bed[bj]*ch);
       nf=Math.max(nf,1-smooth(T.hw+0.3,T.hw+1.8,d));
     }
-    h=h*(1-smooth(90,99,x))+(0.2)*smooth(90,99,x); // coast slopes into the sea
+    h=h*(1-smooth(COAST-5,COAST+1.5,x))+(0.2)*smooth(COAST-5,COAST+1.5,x); // coast slopes into the sea
     lp.setY(v,h*VS);
     patch[v]=hash(Math.floor((x+3)/9),Math.floor((z+5)/6)); near[v]=nf;
   }
@@ -831,7 +869,7 @@ function init3D(){
   tribs.forEach(T=>{T.rib=ribbon(T.S.length-1);});
   const seaMat=new THREE.MeshStandardMaterial({roughness:0.35,metalness:0.05});
   const sea=new THREE.Mesh(new THREE.PlaneGeometry(120,LZ+60).rotateX(-Math.PI/2),seaMat);
-  sea.position.set(152,0,0); scene.add(sea);
+  sea.position.set(COAST+58,0,(B.z0+B.z1)/2); scene.add(sea);
 
   /* structures */
   const concreteMat=new THREE.MeshStandardMaterial({roughness:0.85});
@@ -839,11 +877,11 @@ function init3D(){
   const critMat=new THREE.MeshBasicMaterial(), warnMat=new THREE.MeshBasicMaterial(), goodMat=new THREE.MeshBasicMaterial(), markMat=new THREE.MeshBasicMaterial();
   function frameAt(s){const b=sampleAt(s);const g=new THREE.Group();g.position.set(b.x,0,b.z);g.rotation.y=-Math.atan2(b.tz,b.tx);scene.add(g);return {g,b};}
   // dam
-  const damF=frameAt(S_DAM), W=damF.b.hw*2, damBase=(bedS[NS*S_DAM+2]-0.6)*VS, damTop=18.0*VS;
+  const damF=frameAt(S_DAM), W=damF.b.hw*2, damBase=(bedS[Math.floor(NS*S_DAM)+2]-0.6)*VS, damTop=18.0*VS;
   const deck=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.35,W+3),concreteMat); deck.position.y=damTop; damF.g.add(deck);
   const nP=9, gates=[];
   for(let k=0;k<nP;k++){const z=-W/2+k*W/(nP-1);const p=new THREE.Mesh(new THREE.BoxGeometry(1.8,damTop-damBase,0.34),concreteMat);p.position.set(0,(damTop+damBase)/2,z);damF.g.add(p);}
-  const poolBed=bedS[NS*S_DAM]*VS, gateH=(16.9-14.5)*VS;
+  const poolBed=bedS[Math.floor(NS*S_DAM)]*VS, gateH=(16.9-14.5)*VS;
   for(let k=0;k<nP-1;k++){const z=-W/2+(k+0.5)*W/(nP-1);const gm=new THREE.Mesh(new THREE.BoxGeometry(0.28,gateH,W/(nP-1)-0.36),steelMat);gm.position.set(-1.05,0,z);damF.g.add(gm);gates.push(gm);}
   const sill=new THREE.Mesh(new THREE.BoxGeometry(2.4,poolBed-damBase+0.1,W+3),concreteMat); sill.position.y=(poolBed+damBase)/2; damF.g.add(sill);
   // gauges
@@ -868,6 +906,8 @@ function init3D(){
   const cableMat=new THREE.LineBasicMaterial(); r8.g.add(new THREE.LineSegments(cg,cableMat));
   // head regulators (ปตร.) a little inside each canal; bays by canal size, gates lift with the planned intake
   const roofMat=new THREE.MeshStandardMaterial({roughness:0.7});
+  const provMat=new THREE.MeshBasicMaterial({transparent:true,opacity:0.9,depthWrite:false,side:THREE.DoubleSide,polygonOffset:true,polygonOffsetFactor:-2,polygonOffsetUnits:-2});
+  const distMat=new THREE.LineDashedMaterial({dashSize:0.7,gapSize:0.45,transparent:true,opacity:0.8,depthWrite:false});
   const pickables=[];
   const box=(w,h,d,mat,x,y,z,parent)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);parent.add(m);return m;};
   const regs=canals.map((T,idx)=>{
@@ -896,12 +936,12 @@ function init3D(){
   const sprite=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const gr=x.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(0.45,'rgba(255,255,255,.85)');gr.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);})();
   const DEN=0.0009;
   const streams=[];
-  function riverStream(s0,s1,flowFn){const len=(s1-s0)*curve.getLength();streams.push({len,flow:flowFn,den:DEN,speed:6,maxF:Math.max(...DT.map((_,i)=>flowFn(i))),
+  function riverStream(s0,s1,flowFn){const len=(s1-s0)*RIVER_LEN;streams.push({len,flow:flowFn,den:DEN,speed:6,maxF:Math.max(...DT.map((_,i)=>flowFn(i))),
     at:(u,lat,K,o)=>{const s=s0+u*(s1-s0),b=sampleAt(s);o.x=b.x+b.nx*lat*b.hw*0.8;o.z=b.z+b.nz*lat*b.hw*0.8;o.y=waterAt(s,K)*VS+0.06;}});}
   riverStream(0,S_DAM+0.0001,f=>lerpArr(D.arrive,f));
   riverStream(S_DAM+0.0001,S_JOIN,f=>lerpArr(D.release,f));
   riverStream(S_JOIN,1,f=>lerpArr(D.release,f)+lerpArr(D.pasak,f));
-  tribs.forEach(T=>{const isC=T.kind==='canal';const src=isC?T.def.q:D.pasak;
+  tribs.filter(T=>T.kind!=='side').forEach(T=>{const isC=T.kind==='canal';const src=isC?T.def.q:D.pasak;
     streams.push({len:T.len,flow:f=>lerpArr(src,f),den:isC?DEN*6:DEN,speed:isC?3.5:5,maxF:Math.max(...src),
       at:(u,lat,K,o,pool)=>{const f=u*(T.S.length-1),j=Math.min(Math.floor(f),T.S.length-2),t=f-j,a=T.S[j],b=T.S[j+1];
         o.x=a.x+(b.x-a.x)*t+a.nx*lat*T.hw*0.7;o.z=a.z+(b.z-a.z)*t+a.nz*lat*T.hw*0.7;o.y=T.water(u,j,pool,K)*VS+0.06;}});});
@@ -926,7 +966,7 @@ function init3D(){
     for(let v=0;v<nV;v++){tmp.copy(land).lerp(land2,patch[v]*0.7);tmp.lerp(bank,near[v]);landCol[v*3]=tmp.r;landCol[v*3+1]=tmp.g;landCol[v*3+2]=tmp.b;}
     landGeo.attributes.color.needsUpdate=true;
     waterMat.color=C('--water'); seaMat.color=C('--sea'); concreteMat.color=C('--concrete'); steelMat.color=C('--steel'); cableMat.color=C('--steel');
-    roofMat.color=C('--accent');
+    roofMat.color=C('--accent'); provMat.color=C('--prov'); distMat.color=C('--dist');
     critMat.color=C('--crit'); warnMat.color=C('--warn'); goodMat.color=C('--good'); markMat.color=C('--accent'); pMat.color=C('--spark');
   }
   applyTheme();
@@ -948,6 +988,39 @@ function init3D(){
   }
   let K=updateWater(0);
 
+  /* administrative boundaries (geo.js): provinces as ribbons on the ground, districts as dashed lines */
+  const GZ0=(B.z0+B.z1)/2-LZ/2, GDX=(LX1-LX0)/SEG_X, GDZ=LZ/SEG_Z, GW=SEG_X+1;
+  function groundY(x,z){
+    const fx=clamp((x-LX0)/GDX,0,SEG_X-1e-6), fz=clamp((z-GZ0)/GDZ,0,SEG_Z-1e-6), ix=Math.floor(fx), iz=Math.floor(fz), tx=fx-ix, tz=fz-iz;
+    const y=(i,j)=>lp.getY(j*GW+i);
+    return (y(ix,iz)*(1-tx)+y(ix+1,iz)*tx)*(1-tz)+(y(ix,iz+1)*(1-tx)+y(ix+1,iz+1)*tx)*tz;
+  }
+  const drapeY=(x,z,lift)=>{let y=groundY(x,z);const [i,d]=nearestRiver(x,z);if(d<RS[i].hw+0.6)y=Math.max(y,waterAt(RS[i].s,KD[0])*VS);return y+lift;};
+  function densify(line,step){const out=[];for(let i=0;i<line.length-1;i++){const [x0,z0]=line[i],[x1,z1]=line[i+1],n=Math.max(1,Math.ceil(Math.hypot(x1-x0,z1-z0)/step));
+    for(let k=0;k<n;k++)out.push([x0+(x1-x0)*k/n,z0+(z1-z0)*k/n]);}out.push(line[line.length-1]);return out;}
+  const provMesh=(()=>{const pos=[],idx=[];
+    for(const fl of GEO.provinces.lines){const pts=densify(unflat(fl),0.8), base=pos.length/3;
+      pts.forEach((p,i)=>{const a=pts[Math.max(0,i-1)],b=pts[Math.min(pts.length-1,i+1)],l=Math.hypot(b[0]-a[0],b[1]-a[1])||1,nx=-(b[1]-a[1])/l*0.16,nz=(b[0]-a[0])/l*0.16,y=drapeY(p[0],p[1],0.12);
+        pos.push(p[0]+nx,y,p[1]+nz,p[0]-nx,y,p[1]-nz);});
+      for(let i=0;i<pts.length-1;i++){const a=base+i*2;idx.push(a,a+2,a+1,a+1,a+2,a+3);}}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.setIndex(idx);
+    const m=new THREE.Mesh(g,provMat);m.renderOrder=2;scene.add(m);return m;})();
+  const distLines=(()=>{const pos=[];
+    for(const fl of GEO.districts.lines){const pts=densify(unflat(fl),1.0),ys=pts.map(p=>drapeY(p[0],p[1],0.1));
+      for(let i=0;i<pts.length-1;i++)pos.push(pts[i][0],ys[i],pts[i][1],pts[i+1][0],ys[i+1],pts[i+1][1]);}
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    const m=new THREE.LineSegments(g,distMat);m.computeLineDistances();m.renderOrder=2;scene.add(m);return m;})();
+  const geoLabels=[];
+  [['prov',GEO.provinces.labels],['dist',GEO.districts.labels]].forEach(([kind,list])=>list.forEach(L=>{
+    const el=document.createElement('div');el.className='geo-label '+kind;el.textContent=kind==='dist'?'อ.'+L.name:L.name;
+    if(kind==='dist'&&/^กรุงเทพ/.test(L.pro||'')) el.textContent='เขต'+L.name;
+    $('tags').appendChild(el);geoLabels.push({el,kind,v:new V3(L.x,drapeY(L.x,L.z,kind==='prov'?0.8:0.4),L.z),shown:true});}));
+  const layerOn={prov:true,dist:true};
+  try{const saved=JSON.parse(localStorage.getItem('cp3d-layers')||'null');if(saved)Object.assign(layerOn,saved);}catch(e){}
+  $('lyProv').checked=layerOn.prov; $('lyDist').checked=layerOn.dist;
+  [['lyProv','prov'],['lyDist','dist']].forEach(([id,k])=>$(id).addEventListener('change',()=>{layerOn[k]=$(id).checked;
+    try{localStorage.setItem('cp3d-layers',JSON.stringify(layerOn));}catch(e){}}));
+
   /* labels */
   const tagLayer=$('tags'), tags=[];
   function addTag(key,focus,minor,posFn,htmlFn){
@@ -960,12 +1033,13 @@ function init3D(){
   addTag('dam','dam',false,()=>[damF.b.x,damTop+2.4,damF.b.z],d=>`เขื่อนเจ้าพระยา · ระบาย <b>${fmt(D.release[d])}</b>`);
   addTag('pool','dam',false,()=>{const b=sampleAt(S_DAM-0.09);return [b.x,K.pool*VS+1.4,b.z];},d=>{const v=D.pool[d];const c=v>=POOL_MAX?'crit':v>POOL_CTRL?'warn':'good';return `<span class="dot ${c}"></span>เหนือเขื่อน <b>${lvl(v)}</b>`;});
   regs.forEach(r=>addTag(r.def.id,'gate-'+r.def.id,true,()=>r.tag,d=>`${r.def.name} <b>${fmt(r.def.q[d])}</b>`));
+  {const p=sakae.S[24]; addTag('sakae','north',false,()=>[p.x,sakae.water(p.u,24,K.pool,K)*VS+1.4,p.z],()=>'แม่น้ำสะแกกรัง');}
   {const T=pasak, j=18, p=T.S[j];
     addTag('pasak','down',false,()=>[p.x,T.water(p.u,j,K.pool,K)*VS+1.6,p.z],d=>HAS_PASAK?`แม่น้ำป่าสัก <b>~${fmt(D.pasak[d])}</b>`:'แม่น้ำป่าสัก');}
   STATIONS.forEach((st,k)=>addTag(st.id,'tidal',false,()=>{const b=sampleAt(st.s);return [b.x+b.nx*(b.hw+0.9),(st.bank+0.9)*VS+(k%2?2.2:0),b.z+b.nz*(b.hw+0.9)];},
     d=>{const [c]=stStatus(st.lv[d],st.bank);return `<span class="dot ${c}"></span>${st.code} ${st.name} <b>${lvl(st.lv[d])}</b>`;}));
   addTag('rama8','rama8',false,()=>{const b=sampleAt(S_R8);return [b.x+b.nx*(b.hw+2),deckY+8.4,b.z+b.nz*(b.hw+2)];},d=>{const [c]=r8Status(D.rama8[d]);return `<span class="dot ${c}"></span>สะพานพระราม 8 <b>${lvl(D.rama8[d])}</b>`;});
-  addTag('sea','rama8',false,()=>[104,lerpArr(D.tide,state.dayF)*VS+1.4,0],d=>`สันดอน · น้ำขึ้นสูงสุด <b>${lvl(D.tide[d])}</b>`);
+  addTag('sea','rama8',false,()=>[COAST+5,lerpArr(D.tide,state.dayF)*VS+1.4,RS[NS].z],d=>`สันดอน · น้ำขึ้นสูงสุด <b>${lvl(D.tide[d])}</b>`);
   function refreshTags(){tags.forEach(t=>{t.el.innerHTML=t.htmlFn(state.day);});}
   refreshTags();
 
@@ -974,12 +1048,12 @@ function init3D(){
     const P=(s,dy)=>{const b=sampleAt(s);return new V3(b.x,waterAt(s,K)*VS+dy,b.z);};
     const gid=id; if(id.startsWith('gate-')) id='gate';
     switch(id){
-      case 'north': {const t=P(0.09,0);return [t,t.clone().add(new V3(-8,26,34))];}
-      case 'canals':{const t=P(0.2,-2);return [t,t.clone().add(new V3(-4,50,40))];}
+      case 'north': {const t=P(S_SK*0.6,0);return [t,t.clone().add(new V3(-8,26,34))];}
+      case 'canals':{const t=P(upDam(14),-2);return [t,t.clone().add(new V3(-4,50,40))];}
       case 'dam':   {const t=P(S_DAM,-1.5);return [t,t.clone().add(new V3(-3,7,17))];}
-      case 'down':  {const t=P(0.44,0);return [t,t.clone().add(new V3(-6,40,50))];}
-      case 'tidal': {const t=P(0.75,0);return [t,t.clone().add(new V3(-10,24,32))];}
-      case 'rama8': {const t=P(0.92,0);return [t,t.clone().add(new V3(-14,12,20))];}
+      case 'down':  {const t=P((S_DAM+S_JOIN)/2+0.08,0);return [t,t.clone().add(new V3(-6,40,50))];}
+      case 'tidal': {const t=P(A.c38,0);return [t,t.clone().add(new V3(-10,24,32))];}
+      case 'rama8': {const t=P(S_R8+0.03,0);return [t,t.clone().add(new V3(-14,12,20))];}
       case 'gate':  {const r=regs.find(x=>'gate-'+x.def.id===gid)||regs[0];const t=new V3(r.grp.position.x,r.deckY,r.grp.position.z);
                      return [t,t.clone().add(new V3(-4,5.5,7.5*r.def.side))];}
       default: return [new V3(2,4,4),new V3(-6,98,128)];
@@ -1032,6 +1106,16 @@ function init3D(){
     const near=camera.position.distanceTo(regCenter)<70, showMinor=near||state.focus==='canals'||state.focus.startsWith('gate-');
     if(showMinor!==lastShowMinor){stage.classList.toggle('show-minor',showMinor);lastShowMinor=showMinor;}
     const w=stage.clientWidth,h=stage.clientHeight;
+    const zoom=camera.position.distanceTo(controls.target), distA=layerOn.dist?clamp((120-zoom)/40,0,1):0;
+    provMesh.visible=layerOn.prov; distLines.visible=distA>0.02; distMat.opacity=0.85*distA;
+    for(const L of geoLabels){
+      const show=L.kind==='prov'?layerOn.prov:(distA>0.3&&L.v.distanceTo(controls.target)<55);
+      if(!show){if(L.shown){L.el.style.visibility='hidden';L.shown=false;}continue;}
+      proj.copy(L.v).project(camera);
+      const vis=proj.z<1&&Math.abs(proj.x)<1.05&&Math.abs(proj.y)<1.05;
+      if(vis!==L.shown){L.el.style.visibility=vis?'visible':'hidden';L.shown=vis;}
+      if(vis)L.el.style.transform=`translate(${((proj.x+1)/2*w).toFixed(1)}px,${((1-proj.y)/2*h).toFixed(1)}px) translate(-50%,-50%)`;
+    }
     for(const t of tags){const p=t.posFn();proj.set(p[0],p[1],p[2]).project(camera);
       const vis=proj.z<1&&proj.x>-1.1&&proj.x<1.1&&proj.y>-1.1&&proj.y<1.1;
       t.el.style.visibility=vis?'visible':'hidden';
