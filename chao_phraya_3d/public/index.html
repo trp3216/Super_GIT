@@ -458,7 +458,7 @@ const GATE_GEO = [
   // Kra Siao at the canal head on the river side, U Thong on the same bank a little upstream, joining on the outer side
   {id:'uthong',    name:'ปตร.มะขามเฒ่า-อู่ทอง',    side: 1, s:A.makhamthao-5/RIVER_KM, hw:0.5, line:'uthong',  via:'คลองมะขามเฒ่า', branch:'คลองมะขามเฒ่า-อู่ทอง', offset:0.95, lead:{out:4.5, join:7}},
   {id:'krasiao',   name:'ปตร.มะขามเฒ่า-กระเสียว',  side: 1, s:A.makhamthao, hw:0.45,line:'krasiao', via:'คลองมะขามเฒ่า', branch:'คลองกระเสียว', offset:-0.95, lead:{out:3, join:7}},
-  {id:'others',    name:'คลองย่อย / อื่น ๆ',        side: 1, s:upDam(8),  hw:0.45,pts:[[0,0],[2,3.5],[6,6],[11,8]]},
+  {id:'others',    name:'คลองย่อย / อื่น ๆ',        side: 1, s:upDam(7),  hw:0.45,pts:[[0,0],[0.3,1.2],[3,1.6],[8,1.2],[13,0.4]], at:9}, // runs south between the Tha Chin and the Noi without touching either; regulator set back from Boromathat's
   {id:'boromathat',name:'ปตร.บรมธาตุ',            side: 1, s:A.noi, line:'noi', river:'แม่น้ำน้อย', hw:1.0, pts:[[0,0],[3,5],[10,9],[22,13],[38,16]]}
 ];
 const STATION_GEO = [
@@ -934,7 +934,7 @@ function init3D(){
   const box=(w,h,d,mat,x,y,z,parent)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);parent.add(m);return m;};
   const regs=canals.map((T,idx)=>{
     // real intakes (Noi, Tha Chin) sit at the river; schematic ones a little way into their canal so they don't crowd the bend
-    const g=T.def, n=T.S.length-1; let j=Math.max(2,Math.min(n-2,Math.round((g.line?2.4:g.bank?1.6:6)/T.len*n)));
+    const g=T.def, n=T.S.length-1; let j=Math.max(2,Math.min(n-2,Math.round((g.at||(g.line?2.4:g.bank?1.6:6))/T.len*n)));
     // move down the canal until the structure stands clear of the river channel, so it isn't drawn under the pool
     const clearOf=k=>{const R=landRiver(T.S[k].x,T.S[k].z);return R.d-RS[R.i].hw>T.hw+1.2;};
     while(j<n/3&&!clearOf(j)) j++;
