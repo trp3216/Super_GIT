@@ -1098,13 +1098,21 @@ function init3D(){
   /* resize */
   function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();stage.classList.toggle('compact',w<680);}
   new ResizeObserver(resize).observe(stage); resize();
+  renderer.domElement.addEventListener('webglcontextlost',e=>{e.preventDefault();
+    if(!stage.querySelector('.stage-fallback')) stage.insertAdjacentHTML('beforeend','<div class="stage-fallback" style="background:var(--sky)">ภาพ 3 มิติหยุดทำงาน (เบราว์เซอร์ปิดการแสดงผล WebGL) กรุณารีเฟรชหน้า</div>');});
 
   /* loop */
   const tmp={x:0,y:0,z:0}, proj=new V3();
   const regCenter=regs.reduce((c,r)=>c.add(r.grp.position),new V3()).multiplyScalar(1/regs.length); let lastShowMinor=null;
-  let last=performance.now();
+  let last=performance.now(), frameErr=false;
   function frame(now){
-    const dt=Math.min(0.05,(now-last)/1000); last=now;
+    requestAnimationFrame(frame);
+    // keep drawing even if one frame fails, rather than leaving a black stage
+    try{ step(now); }catch(err){ if(!frameErr){frameErr=true;console.error(err);} }
+  }
+  function step(now){
+    // the first frame's timestamp can be earlier than `last`, so never step backwards
+    const dt=clamp((now-last)/1000,0,0.05); last=now;
     state.dayF+= (state.day-state.dayF)*Math.min(1,dt*3.5);
     if(Math.abs(state.day-state.dayF)<0.001) state.dayF=state.day;
     if(state.dayF!==lastF){K=updateWater(state.dayF);lastF=state.dayF;}
@@ -1117,7 +1125,7 @@ function init3D(){
       const act=Math.min(S.max,Math.round(S.flow(f)*S.len*S.den)), du=(reduceMotion?0:S.speed*dt)/S.len;
       for(let k=0;k<S.max;k++){const o=(S.off+k)*3;
         if(k>=act){pPos[o+1]=-999;continue;}
-        S.u[k]+=du; if(S.u[k]>1)S.u[k]-=1;
+        S.u[k]+=du; if(S.u[k]>=1)S.u[k]-=1; else if(S.u[k]<0)S.u[k]+=1;
         S.at(S.u[k],S.lat[k],K,tmp,K.pool); pPos[o]=tmp.x;pPos[o+1]=tmp.y;pPos[o+2]=tmp.z;}
     }
     pGeo.attributes.position.needsUpdate=true;
@@ -1140,7 +1148,6 @@ function init3D(){
       const vis=proj.z<1&&proj.x>-1.1&&proj.x<1.1&&proj.y>-1.1&&proj.y<1.1;
       t.el.style.visibility=vis?'visible':'hidden';
       if(vis){const x=(proj.x+1)/2*w,y=(1-proj.y)/2*h-12;t.el.style.transform=`translate(${x.toFixed(1)}px,${y.toFixed(1)}px) translate(-50%,-100%)`;}}
-    requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 
