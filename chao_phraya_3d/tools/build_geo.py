@@ -23,6 +23,7 @@ from shapely.ops import linemerge, transform, unary_union
 
 ROOT = Path(__file__).resolve().parents[2]
 RIVER_SHP = ROOT / "แม่น้ำ คลอง" / "Main_River.shp"
+CANAL_SHP = ROOT / "แม่น้ำ คลอง" / "Main_canal.shp"
 OUT = ROOT / "chao_phraya_3d" / "public" / "geo.js"
 SCALE = 0.8          # scene units per km
 MARGIN_EW_M = 32000  # boundary area east/west of the river
@@ -43,15 +44,24 @@ C12_UPSTREAM_OF_RAMA8_M = 3000      # the plan PDF: Rama 8 is ≈3 km downstream
 PASAK_TOP_LAT = 14.56                # Rama VI Dam (Tha Ruea)
 
 
-def river_lines(name):
-    r = shapefile.Reader(str(RIVER_SHP), encoding="cp874")
+def river_lines(name, shp=RIVER_SHP, split_loops=False):
+    r = shapefile.Reader(str(shp), encoding="cp874")
     geoms = [shape(sr.shape.__geo_interface__) for sr in r.iterShapeRecords() if sr.record["NAME"] == name]
     lines = [l for g in geoms for l in getattr(g, "geoms", [g])]
     merged = linemerge(lines)
-    return [p for p in getattr(merged, "geoms", [merged]) if not p.is_ring and p.length > 200]
+    out = []
+    for p in getattr(merged, "geoms", [merged]):
+        c = list(p.coords)
+        if split_loops and math.dist(c[0], c[-1]) < 50:
+            # both banks joined into a loop: cut at the vertex farthest from the joint
+            k = max(range(len(c)), key=lambda i: math.dist(c[0], c[i]))
+            out += [LineString(c[: k + 1]), LineString(c[k:])]
+        elif not p.is_ring and p.length > 200:
+            out.append(p)
+    return out
 
 
-def chain(parts, start_pt, go_south=True, max_gap=3000.0):
+def chain(parts, start_pt, go_south=True, max_gap=3000.0, back_tol=50.0):
     """Joins line parts end to end from start_pt, always moving north→south (or south→north)."""
     remaining = list(parts)
     coords = []
@@ -63,7 +73,7 @@ def chain(parts, start_pt, go_south=True, max_gap=3000.0):
                 c = list(p.coords)[::-1] if rev else list(p.coords)
                 d = math.dist(cur, c[0])
                 gain = (c[0][1] - c[-1][1]) if go_south else (c[-1][1] - c[0][1])
-                ahead = (c[0][1] <= cur[1] + 50) if go_south else (c[0][1] >= cur[1] - 50)  # never step back
+                ahead = (c[0][1] <= cur[1] + back_tol) if go_south else (c[0][1] >= cur[1] - back_tol)  # never step back
                 if gain > 0 and ahead and d < max_gap and (best is None or d < best[0]):
                     best = (d, p, c)
         if not best:
@@ -111,6 +121,25 @@ def main():
     noi = fed_river(["แม่น้ำน้อย"])
     thachin = fed_river(["แม่น้ำท่าจีน", "แม่น้ำสุพรรณ"])
 
+    # Makham Thao canal (ปตร.มะขามเฒ่า-อู่ทอง / -กระเสียว take water through it, separate channels from the head),
+    # then the U Thong and Kra Siao branches; the stretches missing from the shapefile are joined straight
+    mk_parts = [p for p in river_lines("คลองมะขามเฒ่า", CANAL_SHP, split_loops=True) if p.length > 1500]  # skip short stubs
+    mk_top = max((pt for p in mk_parts for pt in (p.coords[0], p.coords[-1])), key=lambda c: c[1])
+    makhamthao = chain(mk_parts, mk_top, go_south=True, max_gap=1500, back_tol=500).simplify(150)
+    ut_parts = river_lines("คลองมะขามเฒ่าอู่ทอง", CANAL_SHP)
+    ut_top = max((pt for p in ut_parts for pt in (p.coords[0], p.coords[-1])), key=lambda c: c[1])
+    ut_branch = chain(ut_parts, ut_top, go_south=True, max_gap=3000).simplify(150)
+    ks = river_lines("คลองกระเสียว", CANAL_SHP)[0]
+    if Point(ks.coords[-1]).distance(makhamthao) < Point(ks.coords[0]).distance(makhamthao):
+        ks = LineString(list(ks.coords)[::-1])
+    ks_branch = ks.simplify(150)
+    mkc = list(makhamthao.coords)
+    split = min(range(len(mkc)), key=lambda i: math.dist(mkc[i], ks_branch.coords[0]))
+    uthong = LineString(mkc + list(ut_branch.coords))
+    krasiao = LineString(mkc[: split + 1] + list(ks_branch.coords))
+    gaps = {"uthong": [len(mkc) - 1, len(mkc)], "krasiao": [split, split + 1]}  # point indices of the straight joins
+    gap_km = {k: round(math.dist(l.coords[a], l.coords[b]) / 1000, 1) for k, l, (a, b) in (("uthong", uthong, gaps["uthong"]), ("krasiao", krasiao, gaps["krasiao"]))}
+
     total = river.length
     anchors = {}
     for k, (lat, lon) in ANCHORS.items():
@@ -120,6 +149,7 @@ def main():
     anchors["join"] = {"s": river.project(Point(pasak.coords[-1])) / total, "snap_m": round(Point(pasak.coords[-1]).distance(river))}
     anchors["noi"] = {"s": river.project(Point(noi.coords[0])) / total, "snap_m": round(Point(noi.coords[0]).distance(river))}
     anchors["thachin"] = {"s": river.project(Point(thachin.coords[0])) / total, "snap_m": round(Point(thachin.coords[0]).distance(river))}
+    anchors["makhamthao"] = {"s": river.project(Point(makhamthao.coords[0])) / total, "snap_m": round(Point(makhamthao.coords[0]).distance(river))}
     anchors["skjoin"] = {"s": river.project(Point(sakaekrang.coords[-1])) / total, "snap_m": round(Point(sakaekrang.coords[-1]).distance(river))}
     assert anchors["thachin"]["s"] < anchors["noi"]["s"] <= anchors["dam"]["s"] + 0.002, "intakes must be above the dam"
     order = ["skjoin", "dam", "join", "c29b", "c38", "c22a", "c12", "rama8"]
@@ -208,6 +238,9 @@ def main():
         "sakaekrang": flat(sakaekrang),
         "noi": flat(noi),
         "thachin": flat(thachin),
+        "uthong": flat(uthong),
+        "krasiao": flat(krasiao),
+        "canalGaps": gaps,
         "anchors": {k: round(v["s"], 5) for k, v in anchors.items()},
         "provinces": {"lines": lines_of(prov_lines, 150), "labels": labels(provs, "pro_th", 40)},
         "districts": {"lines": lines_of(dist_lines, 150), "labels": labels(dists, "amp_th", 8)},
@@ -216,6 +249,7 @@ def main():
     OUT.write_text(js, encoding="utf-8")
     print(f"river {total/1000:.1f} km, {len(river.coords)} pts | pasak {len(pasak.coords)} | sakaekrang {len(sakaekrang.coords)}"
           f" | noi {noi.length/1000:.0f} km {len(noi.coords)} pts | thachin {thachin.length/1000:.0f} km {len(thachin.coords)} pts")
+    print(f"makham thao {makhamthao.length/1000:.1f} km to {to_ll.transform(*mkc[-1])[1]:.3f}N | straight joins (km) {gap_km}")
     print("anchors", {k: (round(v['s'], 4), v['snap_m']) for k, v in anchors.items()})
     print(f"provinces {len(provs)} ({len(geo['provinces']['labels'])} labels), districts {len(dists)} ({len(geo['districts']['labels'])} labels)")
     print("bounds", geo["bounds"], f"| {OUT.stat().st_size/1024:.0f} KB")

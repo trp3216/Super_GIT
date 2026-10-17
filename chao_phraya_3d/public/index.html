@@ -427,7 +427,7 @@ footer.src p{margin:0}
 
   <footer class="src">
     <p>ที่มาของตัวเลข: เอกสาร <span id="srcDoc">“แผนการระบายน้ำเขื่อนเจ้าพระยา 16 ต.ค. 2569”</span> ส่วนบริหารจัดการน้ำ สำนักบริหารจัดการน้ำและอุทกวิทยา กรมชลประทาน ตัวเลขอ่านจากไฟล์ PDF โดยอัตโนมัติ หน้านี้จัดทำเพื่ออธิบายเอกสารดังกล่าว ไม่ใช่ประกาศของหน่วยงาน</p>
-    <p>ภาพ 3 มิติวางตามพิกัดจริง: เส้นลำน้ำเจ้าพระยา ป่าสัก และสะแกกรัง จาก shapefile ในโครงการ ขอบเขตจังหวัดและอำเภอจาก <a href="https://github.com/chingchai/OpenGISData-Thailand" target="_blank" rel="noopener">OpenGISData-Thailand</a> (CC BY 4.0) ตำแหน่งสถานีวัดน้ำเป็นค่าโดยประมาณ ความกว้างลำน้ำและความสูงขยายเพื่อให้มองเห็น แม่น้ำน้อย (จาก ปตร.บรมธาตุ) และแม่น้ำท่าจีน (จาก ปตร.พลเทพ) ใช้เส้นจริง ส่วนคลองและ ปตร. อื่นเป็นแผนผังที่วางเหนือเขื่อน ไม่ใช่แนวคลองจริง</p>
+    <p>ภาพ 3 มิติวางตามพิกัดจริง: เส้นลำน้ำเจ้าพระยา ป่าสัก และสะแกกรัง จาก shapefile ในโครงการ ขอบเขตจังหวัดและอำเภอจาก <a href="https://github.com/chingchai/OpenGISData-Thailand" target="_blank" rel="noopener">OpenGISData-Thailand</a> (CC BY 4.0) ตำแหน่งสถานีวัดน้ำเป็นค่าโดยประมาณ ความกว้างลำน้ำและความสูงขยายเพื่อให้มองเห็น แม่น้ำน้อย (จาก ปตร.บรมธาตุ) แม่น้ำท่าจีน (จาก ปตร.พลเทพ) และคลองมะขามเฒ่า (ปตร.มะขามเฒ่า-อู่ทอง และ -กระเสียว แยกช่องน้ำกันตั้งแต่ปากคลอง) ใช้เส้นจริง ช่วงต่อไปยังคลองอู่ทองและคลองกระเสียวที่ไม่มีในข้อมูลวาดเป็นเส้นตรง ส่วน ปตร.มโนรมย์ มหาราช และคลองย่อยเป็นแผนผัง</p>
     <p>ระดับน้ำท้ายเขื่อนในภาพและอัตราการไหลรายวันของแม่น้ำป่าสัก<span id="pasakNote"> (เอกสารระบุ 440 → 350 ลบ.ม./วินาที)</span> เป็นค่าประมาณเพื่อแสดงภาพเท่านั้น จุดลอยน้ำแสดงความหนาแน่นตามอัตราการไหล (คลองชลประทานใช้มาตราส่วนขยาย 6 เท่า)</p>
   </footer>
 </div>
@@ -452,8 +452,9 @@ const GATE_GEO = [
   {id:'manorom',   name:'ปตร.มโนรมย์',            side:-1, s:upDam(30), hw:1.0, pts:[[0,0],[1,7],[4,18],[12,30],[22,44]]},
   {id:'maharaj',   name:'ปตร.มหาราช',             side:-1, s:upDam(11), hw:0.75,pts:[[0,0],[3,5],[10,10],[22,15],[40,19]]},
   {id:'phonlathep',name:'ปตร.พลเทพ',              side: 1, s:A.thachin, line:'thachin', river:'แม่น้ำท่าจีน', hw:0.8, pts:[[0,0],[0,7],[-2,18],[2,30],[8,44]]},
-  {id:'uthong',    name:'ปตร.มะขามเฒ่า-อู่ทอง',    side: 1, s:upDam(29.5), hw:0.5, pts:[[0,0],[2,6],[8,14],[16,24],[24,36]]},
-  {id:'krasiao',   name:'ปตร.มะขามเฒ่า-กระเสียว',  side: 1, s:upDam(31.5), hw:0.45,pts:[[0,0],[3,6],[12,11],[24,19],[36,26]]},
+  // both take water at the head of the Makham Thao canal in separate channels side by side (offset), then part ways
+  {id:'uthong',    name:'ปตร.มะขามเฒ่า-อู่ทอง',    side: 1, s:A.makhamthao, hw:0.5, line:'uthong',  via:'คลองมะขามเฒ่า', branch:'คลองมะขามเฒ่า-อู่ทอง', offset:-0.95},
+  {id:'krasiao',   name:'ปตร.มะขามเฒ่า-กระเสียว',  side: 1, s:A.makhamthao, hw:0.45,line:'krasiao', via:'คลองมะขามเฒ่า', branch:'คลองกระเสียว', offset:0.95},
   {id:'others',    name:'คลองย่อย / อื่น ๆ',        side: 1, s:upDam(12), hw:0.45,pts:[[0,0],[2,3.5],[6,6],[11,8]]},
   {id:'boromathat',name:'ปตร.บรมธาตุ',            side: 1, s:A.noi, line:'noi', river:'แม่น้ำน้อย', hw:1.0, pts:[[0,0],[3,5],[10,9],[22,13],[38,16]]}
 ];
@@ -539,7 +540,7 @@ const INFO = {
 GATES.forEach(g=>{
   const share=i=>D.div[i]?Math.round(g.q[i]/D.div[i]*100):0;
   INFO['gate-'+g.id]={t:`${g.name} · ${g.side<0?'ฝั่งตะวันออก (ซ้าย)':'ฝั่งตะวันตก (ขวา)'}`,
-    p:`${g.river?`ประตูระบายน้ำต้น${g.river} (แนวลำน้ำในภาพเป็นเส้นจริง)`:g.id==='others'?'จุดรับน้ำของคลองย่อยและอื่น ๆ ฝั่งตะวันตก':'ประตูระบายน้ำปากคลองส่งน้ำ'} รับน้ำจากแม่น้ำเจ้าพระยาเหนือเขื่อนเข้าระบบชลประทาน แผนรับน้ำ${g.q[0]===g.q[LAST]?`คงที่ ${fmt(g.q[0])}`:`${trend(g.q[0],g.q[LAST],0)}จาก ${fmt(g.q[0])} เป็น ${fmt(g.q[LAST])}`} ลบ.ม./วินาที บานประตูในภาพยกสูงตามปริมาณรับน้ำของแต่ละวัน (แผนผัง ไม่ใช่ขนาดจริง)`,
+    p:`${g.river?`ประตูระบายน้ำต้น${g.river} (แนวลำน้ำในภาพเป็นเส้นจริง)`:g.via?`ประตูระบายน้ำที่ปากคลองมะขามเฒ่า แยกช่องน้ำของตัวเองตั้งแต่ปากคลอง ไหลคู่ไปตามคลองมะขามเฒ่า แล้วส่งต่อเข้า${g.branch} (ช่วงที่ไม่มีในข้อมูลแผนที่วาดเป็นเส้นตรง)`:g.id==='others'?'จุดรับน้ำของคลองย่อยและอื่น ๆ ฝั่งตะวันตก':'ประตูระบายน้ำปากคลองส่งน้ำ'} รับน้ำจากแม่น้ำเจ้าพระยาเหนือเขื่อนเข้าระบบชลประทาน แผนรับน้ำ${g.q[0]===g.q[LAST]?`คงที่ ${fmt(g.q[0])}`:`${trend(g.q[0],g.q[LAST],0)}จาก ${fmt(g.q[0])} เป็น ${fmt(g.q[LAST])}`} ลบ.ม./วินาที บานประตูในภาพยกสูงตามปริมาณรับน้ำของแต่ละวัน (แผนผัง ไม่ใช่ขนาดจริง)`,
     figs:d=>[['รับน้ำ',fmt(g.q[d])+' ลบ.ม./วิ'],['สัดส่วนของการผันน้ำรวม',share(d)+'%']]};
 });
 const TOUR = [
@@ -794,7 +795,7 @@ function init3D(){
   function tribFromLine(flatArr,hw,kind,def){
     const P=unflat(flatArr); let L=0; for(let i=1;i<P.length;i++)L+=Math.hypot(P[i][0]-P[i-1][0],P[i][1]-P[i-1][1]);
     const n=Math.max(60,Math.ceil(L/0.8)); // dense enough that the carved channel has no gaps
-    const R=resample(P,n), S=R.pts.map(([x,z],j)=>({u:j/n,x,z,nx:-R.tan[j][1],nz:R.tan[j][0]}));
+    const off=(def&&def.offset)||0, R=resample(P,n), S=R.pts.map(([x,z],j)=>{const nx=-R.tan[j][1],nz=R.tan[j][0];return {u:j/n,x:x+nx*off,z:z+nz*off,nx,nz};});
     let minx=1e9,maxx=-1e9,minz=1e9,maxz=-1e9;S.forEach(p=>{minx=Math.min(minx,p.x);maxx=Math.max(maxx,p.x);minz=Math.min(minz,p.z);maxz=Math.max(maxz,p.z);});
     return {def:def||{hw},kind,S,len:R.len,hw,bb:[minx-4,maxx+4,minz-4,maxz+4]};
   }
@@ -927,7 +928,7 @@ function init3D(){
     box(0.14,0.14,Wc+0.5,steelMat,-0.35,deckY+1.1,0,grp);                                           // hoist beam
     const gateH=H*0.62, closedY=bedY+0.05+gateH/2, openRange=H*0.55, gates=[];
     for(let k=0;k<nb;k++) gates.push(box(0.12,gateH,Wc/nb-0.24,steelMat,-0.35,closedY,-Wc/2+(k+0.5)*Wc/nb,grp));
-    const hz=Wc/2+1.35;                                                                              // operator hut
+    const hz=(g.offset<0?-1:1)*(Wc/2+1.35);                                                         // operator hut (outer side when paired)
     box(0.9,0.6,0.8,concreteMat,0.4,landY+0.3,hz,grp);
     const roof=new THREE.Mesh(new THREE.ConeGeometry(0.75,0.45,4),roofMat); roof.rotation.y=Math.PI/4; roof.position.set(0.4,landY+0.82,hz); grp.add(roof);
     pickables.push(grp);
@@ -1036,7 +1037,10 @@ function init3D(){
   addTag('north','north',false,top3(0.03,2.2),d=>`น้ำเหนือ C.2 + สะแกกรัง <b>${fmt(D.arrive[d])}</b>`);
   addTag('dam','dam',false,()=>[damF.b.x,damTop+2.4,damF.b.z],d=>`เขื่อนเจ้าพระยา · ระบาย <b>${fmt(D.release[d])}</b>`);
   addTag('pool','dam',false,()=>{const b=sampleAt(S_DAM-0.09);return [b.x,K.pool*VS+1.4,b.z];},d=>{const v=D.pool[d];const c=v>=POOL_MAX?'crit':v>POOL_CTRL?'warn':'good';return `<span class="dot ${c}"></span>เหนือเขื่อน <b>${lvl(v)}</b>`;});
-  regs.forEach(r=>addTag(r.def.id,'gate-'+r.def.id,true,()=>r.tag,d=>`${r.def.name}${r.def.river?` (${r.def.river})`:''} <b>${fmt(r.def.q[d])}</b>`));
+  regs.forEach(r=>addTag(r.def.id,'gate-'+r.def.id,true,()=>r.tag,d=>`${r.def.name}${r.def.river?` (${r.def.river})`:r.def.via?` (${r.def.via})`:''} <b>${fmt(r.def.q[d])}</b>`));
+  const tagOnCanal=(T,frac,key,text)=>{const j=Math.round((T.S.length-1)*frac),p=T.S[j];addTag(key,'gate-'+T.def.id,false,()=>[p.x,T.water(p.u,j,K.pool,K)*VS+1.3,p.z],()=>text);};
+  canals.filter(T=>T.def.branch).forEach(T=>tagOnCanal(T,T.def.id==='uthong'?0.9:0.94,T.def.id+'-branch',T.def.branch));
+  {const T=canals.find(T=>T.def.id==='uthong'); if(T) tagOnCanal(T,0.2,'makhamthao','คลองมะขามเฒ่า');}
   canals.filter(T=>T.def.river).forEach(T=>{const j=Math.round(T.S.length*0.45), p=T.S[j];
     addTag(T.def.id+'-river','gate-'+T.def.id,false,()=>[p.x,T.water(p.u,j,K.pool,K)*VS+1.3,p.z],()=>T.def.river);});
   {const p=sakae.S[24]; addTag('sakae','north',false,()=>[p.x,sakae.water(p.u,24,K.pool,K)*VS+1.4,p.z],()=>'แม่น้ำสะแกกรัง');}
@@ -1061,7 +1065,7 @@ function init3D(){
       case 'tidal': {const t=P(A.c38,0);return [t,t.clone().add(new V3(-10,24,32))];}
       case 'rama8': {const t=P(S_R8+0.03,0);return [t,t.clone().add(new V3(-14,12,20))];}
       case 'gate':  {const r=regs.find(x=>'gate-'+x.def.id===gid)||regs[0];const t=new V3(r.grp.position.x,r.deckY,r.grp.position.z);
-                     return [t,t.clone().add(new V3(-4,5.5,7.5*r.def.side))];}
+                     return [t,t.clone().add(new V3(-6,8.5,11*r.def.side))];}
       default: return [new V3(2,4,4),new V3(-6,98,128)];
     }
   }
