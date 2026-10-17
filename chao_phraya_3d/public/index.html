@@ -147,7 +147,11 @@ header.top .lede{max-width:66ch;margin:.35rem 0 0;color:var(--ink-2)}
 
 .gates{display:grid;gap:4px;font-size:.84rem}
 .gates .grp{font-size:.74rem;font-weight:600;color:var(--ink-3);letter-spacing:.04em;margin-top:4px}
-.gate{display:grid;grid-template-columns:minmax(0,1fr) 64px 3.2em;gap:8px;align-items:center}
+.gate{display:grid;grid-template-columns:minmax(0,1fr) 64px 3.2em;gap:8px;align-items:center;width:calc(100% + 12px);margin:0 -6px;padding:3px 6px;
+  font:inherit;color:inherit;text-align:left;background:none;border:0;border-radius:6px;cursor:pointer}
+.gate:hover{background:var(--panel-2)}
+.gate.on{background:var(--accent-soft)}
+.gate:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 .gate .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2)}
 .gate .bar{height:6px;border-radius:3px;background:var(--panel-2);overflow:hidden}
 .gate .bar i{display:block;height:100%;background:var(--s-arrive);border-radius:3px;transition:width .4s ease}
@@ -515,6 +519,12 @@ const INFO = {
   rama8:{t:'6 · สะพานพระราม 8 และสันดอน', p:`สะพานพระราม 8 อยู่ท้ายน้ำ C.12 สามเสนราว 3 กม. ระดับสูงสุดในช่วงนี้ ${lvl(r8Max)} ม.รทก. (${dShort(r8MaxI)}) ${r8Max<R8_WARN?'ต่ำกว่า':'ถึง'}ระดับเตือนภัย ${lvl(R8_WARN)} ${r8Max<R8_BANK?`และต่ำกว่าตลิ่งวิกฤต ${lvl(R8_BANK)} อยู่ ${(R8_BANK-r8Max).toFixed(2)} ม.`:`และถึงตลิ่งวิกฤต ${lvl(R8_BANK)}`} ที่สันดอน (ปากแม่น้ำ) น้ำขึ้นสูงสุดรายวันอยู่ระหว่าง ${lvl(Math.min(...D.tide))} ถึง ${lvl(Math.max(...D.tide))} ม.รทก.`,
     figs:d=>[['พระราม 8',lvl(D.rama8[d])+(D.rama8t[d]?' (เวลา '+D.rama8t[d]+' น.)':'')],['ห่างตลิ่งวิกฤต',(R8_BANK-D.rama8[d]).toFixed(2)+' ม.'],['สันดอน',lvl(D.tide[d])]]}
 };
+GATES.forEach(g=>{
+  const share=i=>D.div[i]?Math.round(g.q[i]/D.div[i]*100):0;
+  INFO['gate-'+g.id]={t:`${g.name} · ${g.side<0?'ฝั่งตะวันออก (ซ้าย)':'ฝั่งตะวันตก (ขวา)'}`,
+    p:`${g.id==='others'?'จุดรับน้ำของคลองย่อยและอื่น ๆ ฝั่งตะวันตก':'ประตูระบายน้ำปากคลองส่งน้ำ'} รับน้ำจากแม่น้ำเจ้าพระยาเหนือเขื่อนเข้าระบบชลประทาน แผนรับน้ำ${g.q[0]===g.q[LAST]?`คงที่ ${fmt(g.q[0])}`:`${trend(g.q[0],g.q[LAST],0)}จาก ${fmt(g.q[0])} เป็น ${fmt(g.q[LAST])}`} ลบ.ม./วินาที บานประตูในภาพยกสูงตามปริมาณรับน้ำของแต่ละวัน (แผนผัง ไม่ใช่ขนาดจริง)`,
+    figs:d=>[['รับน้ำ',fmt(g.q[d])+' ลบ.ม./วิ'],['สัดส่วนของการผันน้ำรวม',share(d)+'%']]};
+});
 const TOUR = [
   {id:'north', label:'น้ำเหนือไหลมาถึง'},
   {id:'canals',label:'ผันเข้าระบบชลประทาน'},
@@ -553,11 +563,13 @@ $('play').addEventListener('click',()=>setPlaying(!state.playing));
 $('tour').innerHTML = TOUR.map((t,i)=>`<li><button type="button" data-id="${t.id}" aria-pressed="false"><span class="n">${i+1}</span><span>${t.label}</span></button></li>`).join('');
 $('tour').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setFocus(b.dataset.id,true);});
 $('resetView').addEventListener('click',()=>setFocus('overview',true));
+$('gates').addEventListener('click',e=>{const b=e.target.closest('[data-gate]');if(b)setFocus('gate-'+b.dataset.gate,true);});
 
 function setFocus(id,moveCam){
   state.focus=id;
   document.querySelectorAll('#tour button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.id===id)));
   renderInfo();
+  document.querySelectorAll('#gates [data-gate]').forEach(b=>b.classList.toggle('on','gate-'+b.dataset.gate===id));
   if(scene3d){ scene3d.highlight(id); if(moveCam) scene3d.fly(id); }
 }
 function renderInfo(){
@@ -599,7 +611,7 @@ function renderPanel(){
   }
 
   $('divTot').textContent=fmt(D.div[d])+' ลบ.ม./วินาที';
-  const gRow=g=>`<div class="gate ${g.q[d]<g.q[0]?'cut':''}"><span class="nm" title="${g.name}">${g.name}</span><span class="bar"><i style="width:${(g.q[d]/GATE_MAX*100).toFixed(1)}%"></i></span><span class="v">${g.q[d]}</span></div>`;
+  const gRow=g=>`<button type="button" class="gate ${g.q[d]<g.q[0]?'cut':''}${state.focus==='gate-'+g.id?' on':''}" data-gate="${g.id}" title="ดู ${g.name} ในภาพ 3 มิติ"><span class="nm">${g.name}</span><span class="bar"><i style="width:${(g.q[d]/GATE_MAX*100).toFixed(1)}%"></i></span><span class="v">${g.q[d]}</span></button>`;
   $('gates').innerHTML=`<div class="grp">ฝั่งตะวันออก (ซ้าย)</div>${GATES.filter(g=>g.side<0).map(gRow).join('')}<div class="grp">ฝั่งตะวันตก (ขวา)</div>${GATES.filter(g=>g.side>0).map(gRow).join('')}`;
 
   const rows=STATIONS.map(s=>{const v=s.lv[d],[c,l]=stStatus(v,s.bank);return `<tr><td><b>${s.code}</b> ${s.name}</td><td>${lvl(v)}</td><td>${lvl(s.bank)}</td><td>${(s.bank-v).toFixed(2)}</td><td><span class="pill ${c}">${l}</span></td></tr>`;});
@@ -854,6 +866,31 @@ function init3D(){
   for(let k=1;k<=3;k++){cab.push(top.x,top.y,top.z,0,deckY+0.15,r8.b.hw+1.6+k*0.9+0.6);}
   const cg=new THREE.BufferGeometry(); cg.setAttribute('position',new THREE.Float32BufferAttribute(cab,3));
   const cableMat=new THREE.LineBasicMaterial(); r8.g.add(new THREE.LineSegments(cg,cableMat));
+  // head regulators (ปตร.) a little inside each canal; bays by canal size, gates lift with the planned intake
+  const roofMat=new THREE.MeshStandardMaterial({roughness:0.7});
+  const pickables=[];
+  const box=(w,h,d,mat,x,y,z,parent)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat);m.position.set(x,y,z);parent.add(m);return m;};
+  const regs=canals.map((T,idx)=>{
+    const g=T.def, n=T.S.length-1, j=Math.max(2,Math.min(n-2,Math.round(2.4/T.len*n))), a=T.S[j];
+    const grp=new THREE.Group(); grp.position.set(a.x,0,a.z); grp.rotation.y=Math.atan2(a.nx,a.nz); scene.add(grp);
+    grp.userData.focus='gate-'+g.id;
+    const hw=T.hw, nb=hw>=0.95?4:hw>=0.75?3:hw>=0.5?2:1, Wc=2*hw+0.6, L=1.3;
+    const bedY=T.bed[j]*VS-0.15, landY=T.landS[j]*VS, deckY=landY+0.35, H=deckY-bedY;
+    for(let k=0;k<=nb;k++) box(L,H,0.2,concreteMat,0,(deckY+bedY)/2,-Wc/2+k*Wc/nb,grp);            // piers
+    [-1,1].forEach(sg=>box(L+0.5,H,0.6,concreteMat,0.1,(deckY+bedY)/2,sg*(Wc/2+0.4),grp));          // abutments
+    box(L*0.7,0.18,Wc+1.4,concreteMat,0.2,deckY,0,grp);                                             // service bridge
+    [-1,1].forEach(sg=>{const post=new THREE.Mesh(new THREE.CylinderGeometry(0.06,0.06,1.1,6),steelMat);post.position.set(-0.35,deckY+0.55,sg*(Wc/2+0.2));grp.add(post);});
+    box(0.14,0.14,Wc+0.5,steelMat,-0.35,deckY+1.1,0,grp);                                           // hoist beam
+    const gateH=H*0.62, closedY=bedY+0.05+gateH/2, openRange=H*0.55, gates=[];
+    for(let k=0;k<nb;k++) gates.push(box(0.12,gateH,Wc/nb-0.24,steelMat,-0.35,closedY,-Wc/2+(k+0.5)*Wc/nb,grp));
+    const hz=Wc/2+1.35;                                                                              // operator hut
+    box(0.9,0.6,0.8,concreteMat,0.4,landY+0.3,hz,grp);
+    const roof=new THREE.Mesh(new THREE.ConeGeometry(0.75,0.45,4),roofMat); roof.rotation.y=Math.PI/4; roof.position.set(0.4,landY+0.82,hz); grp.add(roof);
+    pickables.push(grp);
+    return {def:g,grp,gates,closedY,openRange,qmax:Math.max(1,...g.q)*1.25,deckY,
+      tag:[a.x,deckY+1.6+(idx%2)*1.4,a.z]};
+  });
+  [deck,sill].forEach(m=>{m.userData.focus='dam';pickables.push(m);});
 
   /* flow particles */
   const sprite=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const gr=x.createRadialGradient(32,32,0,32,32,32);gr.addColorStop(0,'rgba(255,255,255,1)');gr.addColorStop(0.45,'rgba(255,255,255,.85)');gr.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=gr;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);})();
@@ -889,6 +926,7 @@ function init3D(){
     for(let v=0;v<nV;v++){tmp.copy(land).lerp(land2,patch[v]*0.7);tmp.lerp(bank,near[v]);landCol[v*3]=tmp.r;landCol[v*3+1]=tmp.g;landCol[v*3+2]=tmp.b;}
     landGeo.attributes.color.needsUpdate=true;
     waterMat.color=C('--water'); seaMat.color=C('--sea'); concreteMat.color=C('--concrete'); steelMat.color=C('--steel'); cableMat.color=C('--steel');
+    roofMat.color=C('--accent');
     critMat.color=C('--crit'); warnMat.color=C('--warn'); goodMat.color=C('--good'); markMat.color=C('--accent'); pMat.color=C('--spark');
   }
   applyTheme();
@@ -904,6 +942,7 @@ function init3D(){
     sea.position.y=lerpArr(D.tide,f)*VS-0.03;
     const open=lerpArr(D.release,f)/1800; // gate lift follows the planned release
     gates.forEach(g=>{g.position.y=poolBed+0.2+open*1.0+gateH/2;});
+    regs.forEach(r=>{const o=clamp(lerpArr(r.def.q,f)/r.qmax,0,1); r.gates.forEach(m=>{m.position.y=r.closedY+o*r.openRange;});});
     poolGauge.position.y=pool*VS; stGauges.forEach((gm,k)=>{gm.position.y=lerpArr(STATIONS[k].lv,f)*VS;}); r8Gauge.position.y=lerpArr(D.rama8,f)*VS;
     return K;
   }
@@ -920,9 +959,9 @@ function init3D(){
   addTag('north','north',false,top3(0.03,2.2),d=>`น้ำเหนือ C.2 + สะแกกรัง <b>${fmt(D.arrive[d])}</b>`);
   addTag('dam','dam',false,()=>[damF.b.x,damTop+2.4,damF.b.z],d=>`เขื่อนเจ้าพระยา · ระบาย <b>${fmt(D.release[d])}</b>`);
   addTag('pool','dam',false,()=>{const b=sampleAt(S_DAM-0.09);return [b.x,K.pool*VS+1.4,b.z];},d=>{const v=D.pool[d];const c=v>=POOL_MAX?'crit':v>POOL_CTRL?'warn':'good';return `<span class="dot ${c}"></span>เหนือเขื่อน <b>${lvl(v)}</b>`;});
-  tribs.forEach(T=>{const j=T.kind==='canal'?Math.min(T.S.length-1,26):18, p=T.S[j];
-    if(T.kind==='canal') addTag(T.def.id,'canals',true,()=>[p.x,T.water(p.u,j,K.pool,K)*VS+1.2,p.z],d=>`${T.def.name} <b>${T.def.q[d]}</b>`);
-    else addTag('pasak','down',false,()=>[p.x,T.water(p.u,j,K.pool,K)*VS+1.6,p.z],d=>HAS_PASAK?`แม่น้ำป่าสัก <b>~${fmt(D.pasak[d])}</b>`:'แม่น้ำป่าสัก');});
+  regs.forEach(r=>addTag(r.def.id,'gate-'+r.def.id,true,()=>r.tag,d=>`${r.def.name} <b>${fmt(r.def.q[d])}</b>`));
+  {const T=pasak, j=18, p=T.S[j];
+    addTag('pasak','down',false,()=>[p.x,T.water(p.u,j,K.pool,K)*VS+1.6,p.z],d=>HAS_PASAK?`แม่น้ำป่าสัก <b>~${fmt(D.pasak[d])}</b>`:'แม่น้ำป่าสัก');}
   STATIONS.forEach((st,k)=>addTag(st.id,'tidal',false,()=>{const b=sampleAt(st.s);return [b.x+b.nx*(b.hw+0.9),(st.bank+0.9)*VS+(k%2?2.2:0),b.z+b.nz*(b.hw+0.9)];},
     d=>{const [c]=stStatus(st.lv[d],st.bank);return `<span class="dot ${c}"></span>${st.code} ${st.name} <b>${lvl(st.lv[d])}</b>`;}));
   addTag('rama8','rama8',false,()=>{const b=sampleAt(S_R8);return [b.x+b.nx*(b.hw+2),deckY+8.4,b.z+b.nz*(b.hw+2)];},d=>{const [c]=r8Status(D.rama8[d]);return `<span class="dot ${c}"></span>สะพานพระราม 8 <b>${lvl(D.rama8[d])}</b>`;});
@@ -933,6 +972,7 @@ function init3D(){
   /* camera presets */
   function preset(id){
     const P=(s,dy)=>{const b=sampleAt(s);return new V3(b.x,waterAt(s,K)*VS+dy,b.z);};
+    const gid=id; if(id.startsWith('gate-')) id='gate';
     switch(id){
       case 'north': {const t=P(0.09,0);return [t,t.clone().add(new V3(-8,26,34))];}
       case 'canals':{const t=P(0.2,-2);return [t,t.clone().add(new V3(-4,50,40))];}
@@ -940,6 +980,8 @@ function init3D(){
       case 'down':  {const t=P(0.44,0);return [t,t.clone().add(new V3(-6,40,50))];}
       case 'tidal': {const t=P(0.75,0);return [t,t.clone().add(new V3(-10,24,32))];}
       case 'rama8': {const t=P(0.92,0);return [t,t.clone().add(new V3(-14,12,20))];}
+      case 'gate':  {const r=regs.find(x=>'gate-'+x.def.id===gid)||regs[0];const t=new V3(r.grp.position.x,r.deckY,r.grp.position.z);
+                     return [t,t.clone().add(new V3(-4,5.5,7.5*r.def.side))];}
       default: return [new V3(2,4,4),new V3(-6,98,128)];
     }
   }
@@ -948,6 +990,16 @@ function init3D(){
     fly={t0:performance.now(),dur:1300,ft:controls.target.clone(),fp:camera.position.clone(),tt:t,tp:p};}
   { const [t,p]=preset('overview'); controls.target.copy(t); camera.position.copy(p); controls.update(); }
   controls.addEventListener('start',()=>{fly=null;$('hint').hidden=true;});
+  const ray=new THREE.Raycaster(), ndc=new THREE.Vector2(); let downAt=null;
+  renderer.domElement.addEventListener('pointerdown',e=>{downAt=[e.clientX,e.clientY];});
+  renderer.domElement.addEventListener('pointerup',e=>{
+    if(!downAt||Math.hypot(e.clientX-downAt[0],e.clientY-downAt[1])>6) return;
+    const r=renderer.domElement.getBoundingClientRect();
+    ndc.set((e.clientX-r.left)/r.width*2-1,-(e.clientY-r.top)/r.height*2+1); ray.setFromCamera(ndc,camera);
+    const hit=ray.intersectObjects(pickables,true)[0]; if(!hit) return;
+    let o=hit.object; while(o&&!o.userData.focus) o=o.parent;
+    if(o) setFocus(o.userData.focus,true);
+  });
 
   /* resize */
   function resize(){const w=stage.clientWidth,h=stage.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();stage.classList.toggle('compact',w<680);}
@@ -955,6 +1007,7 @@ function init3D(){
 
   /* loop */
   const tmp={x:0,y:0,z:0}, proj=new V3();
+  const regCenter=regs.reduce((c,r)=>c.add(r.grp.position),new V3()).multiplyScalar(1/regs.length); let lastShowMinor=null;
   let last=performance.now();
   function frame(now){
     const dt=Math.min(0.05,(now-last)/1000); last=now;
@@ -976,6 +1029,8 @@ function init3D(){
     pGeo.attributes.position.needsUpdate=true;
     renderer.render(scene,camera);
     // tags
+    const near=camera.position.distanceTo(regCenter)<70, showMinor=near||state.focus==='canals'||state.focus.startsWith('gate-');
+    if(showMinor!==lastShowMinor){stage.classList.toggle('show-minor',showMinor);lastShowMinor=showMinor;}
     const w=stage.clientWidth,h=stage.clientHeight;
     for(const t of tags){const p=t.posFn();proj.set(p[0],p[1],p[2]).project(camera);
       const vis=proj.z<1&&proj.x>-1.1&&proj.x<1.1&&proj.y>-1.1&&proj.y<1.1;
@@ -988,7 +1043,7 @@ function init3D(){
   return {
     dayChanged(){refreshTags();},
     fly:flyTo,
-    highlight(id){tags.forEach(t=>t.el.classList.toggle('active',t.focus===id));$('stage').classList.toggle('show-minor',id==='canals');}
+    highlight(id){tags.forEach(t=>t.el.classList.toggle('active',t.focus===id||(id==='canals'&&t.focus.startsWith('gate-'))));}
   };
 }
 
