@@ -3,6 +3,7 @@
 //
 // Ct.19 ไม่มีเป็นฟิลด์ในรายงาน (มีแต่ในข้อความ ตั้งแต่ 20 ก.ย.) จึงอ่านค่า 06:00 น. ด้วยมือไว้ใน ct19_0600.csv
 // ข้างสคริปต์นี้ แล้วนำมาเติมเป็นคอลัมน์ ct19_cms
+// คลองรับน้ำฝั่งตะวันตก (พลเทพ, บรมธาตุ, มอ.) ก็มีแต่ในข้อความ (21 ก.ย. – 20 ต.ค.) จึงอ่านด้วย regex จากรายการแยกคลอง
 //
 // ใช้: node chaopraya/extract_timeseries.mjs <reports_dir> [out.csv]
 import fs from "node:fs";
@@ -20,7 +21,7 @@ const DAMS = { "ภูมิพล": "bhumibol_mcm", "สิริกิติ�
 const columns = [
   "date", "c2_cms", "n67_cms", "p17_cms", "ct19_cms",
   "head_level_m", "tail_level_m", "df_m", "release_cms",
-  "sideflow_cms", "intake_cms",
+  "sideflow_cms", "intake_cms", "phonlathep_cms", "borommathat_cms", "mo_cms",
   ...Object.values(DAMS),
 ];
 
@@ -32,12 +33,28 @@ const ct19 = fs.existsSync(ct19Path)
     }))
   : {};
 
+// รายการแยกคลองฝั่งตะวันตกในข้อความรายงาน มี 2 รูปแบบ:
+//   "มอ. 25.73, มก. 10.43, พลเทพ 60.16 ..., บรมธาตุ 90.85"  (ถึง 9 ต.ค.)
+//   "(บรมธาตุ 90.83, พลเทพ 50.12, มอ 10.91, ..."           (ตั้งแต่ 10 ต.ค.)
+const N = String.raw`([\d.]+)`;
+const CANAL_A = new RegExp(String.raw`มอ\.? ${N}, มก\.? ${N}, พลเทพ ${N}[^,]*, บรมธาตุ ${N}`);
+const CANAL_B = new RegExp(String.raw`\(บรมธาตุ ${N}[^,]*, พลเทพ ${N}[^,]*, มอ\.? ${N}`);
+const canals = (text) => {
+  const a = text.match(CANAL_A);
+  if (a) return { mo_cms: +a[1], phonlathep_cms: +a[3], borommathat_cms: +a[4] };
+  const b = text.match(CANAL_B);
+  if (b) return { borommathat_cms: +b[1], phonlathep_cms: +b[2], mo_cms: +b[3] };
+  return {};
+};
+
 const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
 const files = fs.readdirSync(reportsDir).filter((f) => /^\d{4}-\d{2}-\d{2}\.js$/.test(f)).sort();
 const rows = [];
 for (const f of files) {
-  const r = (await import(pathToFileURL(path.resolve(reportsDir, f)).href)).default;
+  const file = path.resolve(reportsDir, f);
+  const r = (await import(pathToFileURL(file).href)).default;
+  const canal = canals(fs.readFileSync(file, "utf8"));
   const last = (r.stationHistory ?? []).at(-1) ?? {};
   const c13 = r.c13Status ?? {};
   const bal = c13.balanceBreakdown ?? {};
@@ -54,6 +71,9 @@ for (const f of files) {
     release_cms: num(bal.discharge) != null ? Math.abs(bal.discharge) : num(last.releaseC13),
     sideflow_cms: num(bal.sideflow),
     intake_cms: num(bal.intake) != null ? Math.abs(bal.intake) : null,
+    phonlathep_cms: num(canal.phonlathep_cms),
+    borommathat_cms: num(canal.borommathat_cms),
+    mo_cms: num(canal.mo_cms),
   };
   for (const col of Object.values(DAMS)) row[col] = null;
   for (const d of r.damReleases?.rows ?? []) {
