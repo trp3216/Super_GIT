@@ -4,7 +4,8 @@
 // Ct.19 ไม่มีเป็นฟิลด์ในรายงาน (มีแต่ในข้อความ ตั้งแต่ 20 ก.ย.) จึงอ่านค่า 06:00 น. ด้วยมือไว้ใน ct19_0600.csv
 // ข้างสคริปต์นี้ แล้วนำมาเติมเป็นคอลัมน์ ct19_cms
 // คลองรับน้ำฝั่งตะวันตก (พลเทพ, บรมธาตุ, มอ.) และฝั่งตะวันออก (มโนรมย์, มหาราช) ก็มีแต่ในข้อความ
-// (21 ก.ย. – 20 ต.ค.) จึงอ่านด้วย regex จากรายการแยกคลอง
+// (21 ก.ย. – 20 ต.ค.) จึงอ่านด้วย regex จากรายการแยกคลอง; ค่าคลองที่กระจายอยู่วันอื่น (ก.ค., 21-22 ต.ค.)
+// อ่านด้วยมือไว้ใน canals_extra.csv และเติมเฉพาะช่องที่ว่าง
 //
 // ใช้: node chaopraya/extract_timeseries.mjs <reports_dir> [out.csv]
 import fs from "node:fs";
@@ -51,6 +52,15 @@ const canals = (text) => {
   return out;
 };
 
+const extraPath = new URL("./canals_extra.csv", import.meta.url);
+const extra = {};
+if (fs.existsSync(extraPath)) {
+  for (const l of fs.readFileSync(extraPath, "utf8").trim().split("\n").slice(1)) {
+    const [d, col, v] = l.split(",");
+    (extra[d] ??= {})[col] = Number(v);
+  }
+}
+
 const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
 const files = fs.readdirSync(reportsDir).filter((f) => /^\d{4}-\d{2}-\d{2}\.js$/.test(f)).sort();
@@ -81,6 +91,7 @@ for (const f of files) {
     manorom_cms: num(canal.manorom_cms),
     maharaj_cms: num(canal.maharaj_cms),
   };
+  for (const [col, v] of Object.entries(extra[row.date] ?? {})) row[col] ??= num(v);
   for (const col of Object.values(DAMS)) row[col] = null;
   for (const d of r.damReleases?.rows ?? []) {
     if (DAMS[d.dam]) row[DAMS[d.dam]] = num(d.actualMcm);
