@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chao Phraya Water Management Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; background: #1a1a1a; color: #e0e0e0; }
+        .header { background: #2d2d2d; padding: 1rem; text-align: center; border-bottom: 3px solid #0078d4; }
+        .alert-bar { background: #ff4d4d; color: white; padding: 10px; text-align: center; font-weight: bold; display: none; animation: blink 1s infinite; }
+        @keyframes blink { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .container { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px; height: calc(100vh - 120px); }
+        #map { height: 100%; border-radius: 10px; border: 1px solid #444; }
+        .chart-container { background: #2d2d2d; padding: 15px; border-radius: 10px; border: 1px solid #444; }
+        .stats-panel { grid-column: span 2; display: flex; justify-content: space-around; background: #2d2d2d; padding: 15px; border-radius: 10px; }
+        .stat-card { text-align: center; }
+        .stat-value { font-size: 1.5rem; font-weight: bold; color: #0078d4; }
+        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } .stats-panel { flex-direction: column; gap: 10px; } }
+    </style>
+</head>
+<body>
+    <div id="alert-bar" class="alert-bar">⚠️ คำเตือน: ตรวจพบระดับน้ำผิดปกติในพื้นที่เฝ้าระวัง!</div>
+    <div class="header">
+        <h1>Chao Phraya Intelligence Dashboard (XGBoost Powered)</h1>
+    </div>
+    <div class="container">
+        <div id="map"></div>
+        <div class="chart-container">
+            <canvas id="forecastChart"></canvas>
+        </div>
+        <div class="stats-panel" id="stats-panel">
+            <!-- Stats will be injected here -->
+        </div>
+    </div>
+
+    <script>
+        async function initDashboard() {
+            // 1. Load Data
+            const response = await fetch('forecast_data.json');
+            const data = await response.json();
+
+            // 2. Initialize Map
+            const map = L.map('map').setView([15.2, 100.3], 7);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            const statsPanel = document.getElementById('stats-panel');
+            const alertBar = document.getElementById('alert-bar');
+            let hasCritical = false;
+
+            data.forEach(station => {
+                // 3. Add Markers
+                const color = station.status === 'critical' ? 'red' : (station.status === 'warning' ? 'orange' : 'green');
+                if (station.status === 'critical' || station.status === 'warning') hasCritical = true;
+
+                const marker = L.circleMarker([station.lat, station.lng], {
+                    radius: 10,
+                    fillColor: color,
+                    color: "#fff",
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                }).addTo(map);
+                
+                marker.bindPopup(`<b>${station.station}</b><br>ระดับน้ำปัจจุบัน: ${station.actual} ม.รทก.`);
+
+                // 4. Update Stats Panel
+                const card = document.createElement('div');
+                card.className = 'stat-card';
+                card.innerHTML = `<div>${station.station}</div><div class="stat-value">${station.actual}</div>`;
+                statsPanel.appendChild(card);
+
+                // 5. Setup Chart for the first station (as an example)
+                if (station.station === "C.13 เขื่อนเจ้าพระยา" || station.station === "C.2 นครสวรรค์") {
+                    setupChart(station);
+                }
+            });
+
+            if (hasCritical) {
+                alertBar.style.display = 'block';
+            }
+
+            function setupChart(station) {
+                const ctx = document.getElementById('forecastChart').getContext('2d');
+                const labels = ['วันนี้', 'พรุ่งนี้', '+2 วัน', '+3 วัน', '+4 วัน', '+5 วัน', '+6 วัน'];
+                const forecastData = [station.actual, ...station.forecast];
+
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: `พยากรณ์ระดับน้ำ: ${station.station}`,
+                            data: forecastData,
+                            borderColor: '#0078d4',
+                            backgroundColor: 'rgba(0, 120, 212, 0.2)',
+                            fill: true,
+                            tension: 0.4,
+                            borderDash: [5, 5], // To differentiate forecast
+                            segment: {
+                                borderDash: ctx => ctx.p0DataIndex >= 0 ? [5, 5] : undefined
+                            }
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: { beginAtZero: false, grid: { color: '#444' } },
+                            x: { grid: { color: '#444' } }
+                        },
+                        plugins: {
+                            legend: { labels: { color: '#e0e0e0' } }
+                        }
+                    }
+                });
+            }
+        }
+
+        initDashboard();
+    </script>
+</body>
+</html>
