@@ -6,8 +6,8 @@
 // คลองรับน้ำฝั่งตะวันตก (พลเทพ, บรมธาตุ, มอ.) และฝั่งตะวันออก (มโนรมย์, มหาราช) ก็มีแต่ในข้อความ
 // (21 ก.ย. – 20 ต.ค.) จึงอ่านด้วย regex จากรายการแยกคลอง; ค่าคลองที่กระจายอยู่วันอื่น (ก.ค., 21-22 ต.ค.)
 // อ่านด้วยมือไว้ใน canals_extra.csv และเติมเฉพาะช่องที่ว่าง
-// ค่าคลองและระดับเหนือ ปตร. ใช้ excel_daily.csv (จาก import_excel.py) เป็นหลัก; วันที่มีใน Excel แต่ไม่มีรายงาน
-// (ก่อน 2 ก.ค.) สร้างแถวจาก Excel ส่วนสถานีหลักวันที่มีรายงานยังใช้ค่ารายงาน
+// excel_daily.csv (จาก import_excel.py) เป็นแหล่งหลักของ C.2, ระดับเหนือ/ท้ายเขื่อน, ระบาย C.13, คลอง และระดับเหนือ ปตร.
+// (DF คำนวณใหม่จาก Excel); รายงานใช้เฉพาะช่องที่ Excel ไม่มี และค่าที่ Excel ไม่มีเลย (N.67, P.17, Ct.19, Sideflow ฯลฯ)
 //
 // ใช้: node chaopraya/extract_timeseries.mjs <reports_dir> [out.csv]
 import fs from "node:fs";
@@ -74,7 +74,14 @@ if (fs.existsSync(excelPath)) {
     excel[cells[0]] = Object.fromEntries(cols.slice(1).map((c, i) => [c, cells[i + 1] === "" ? null : Number(cells[i + 1])]));
   }
 }
-const CANAL_COLS = columns.filter((c) => /^(phonlathep|borommathat|mo|manorom|maharaj)_/.test(c));
+const EXCEL_COLS = Object.keys(Object.values(excel)[0] ?? {}).filter((c) => columns.includes(c));
+const withExcel = (row) => {
+  const x = excel[row.date];
+  if (!x) return row;
+  for (const col of EXCEL_COLS) if (x[col] != null) row[col] = x[col];
+  if (x.head_level_m != null && x.tail_level_m != null) row.df_m = Math.round((row.head_level_m - row.tail_level_m) * 100) / 100;
+  return row;
+};
 
 const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
@@ -106,7 +113,7 @@ for (const f of files) {
     manorom_cms: num(canal.manorom_cms),
     maharaj_cms: num(canal.maharaj_cms),
   };
-  for (const col of CANAL_COLS) if (excel[row.date]?.[col] != null) row[col] = excel[row.date][col];
+  withExcel(row);
   for (const [col, v] of Object.entries(extra[row.date] ?? {})) row[col] ??= num(v);
   for (const col of Object.values(DAMS)) row[col] = null;
   for (const d of r.damReleases?.rows ?? []) {
@@ -119,9 +126,7 @@ for (const f of files) {
 const have = new Set(rows.map((r) => r.date));
 for (const [date, x] of Object.entries(excel)) {
   if (have.has(date)) continue;
-  const row = { date, ...x };
-  if (x.head_level_m != null && x.tail_level_m != null) row.df_m = Math.round((x.head_level_m - x.tail_level_m) * 100) / 100;
-  rows.push(row);
+  rows.push(withExcel({ date }));
 }
 rows.sort((a, b) => a.date.localeCompare(b.date));
 
