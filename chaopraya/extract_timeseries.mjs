@@ -6,6 +6,8 @@
 // คลองรับน้ำฝั่งตะวันตก (พลเทพ, บรมธาตุ, มอ.) และฝั่งตะวันออก (มโนรมย์, มหาราช) ก็มีแต่ในข้อความ
 // (21 ก.ย. – 20 ต.ค.) จึงอ่านด้วย regex จากรายการแยกคลอง; ค่าคลองที่กระจายอยู่วันอื่น (ก.ค., 21-22 ต.ค.)
 // อ่านด้วยมือไว้ใน canals_extra.csv และเติมเฉพาะช่องที่ว่าง
+// ค่าคลองและระดับเหนือ ปตร. ใช้ excel_daily.csv (จาก import_excel.py) เป็นหลัก; วันที่มีใน Excel แต่ไม่มีรายงาน
+// (ก่อน 2 ก.ค.) สร้างแถวจาก Excel ส่วนสถานีหลักวันที่มีรายงานยังใช้ค่ารายงาน
 //
 // ใช้: node chaopraya/extract_timeseries.mjs <reports_dir> [out.csv]
 import fs from "node:fs";
@@ -24,6 +26,7 @@ const columns = [
   "date", "c2_cms", "n67_cms", "p17_cms", "ct19_cms",
   "head_level_m", "tail_level_m", "df_m", "release_cms",
   "sideflow_cms", "intake_cms", "phonlathep_cms", "borommathat_cms", "mo_cms", "manorom_cms", "maharaj_cms",
+  "phonlathep_up_m", "borommathat_up_m", "mo_up_m", "manorom_up_m", "maharaj_up_m",
   ...Object.values(DAMS),
 ];
 
@@ -61,6 +64,18 @@ if (fs.existsSync(extraPath)) {
   }
 }
 
+const excelPath = new URL("./excel_daily.csv", import.meta.url);
+const excel = {};
+if (fs.existsSync(excelPath)) {
+  const [head, ...lines] = fs.readFileSync(excelPath, "utf8").trim().split(/\r?\n/);
+  const cols = head.split(",");
+  for (const l of lines) {
+    const cells = l.split(",");
+    excel[cells[0]] = Object.fromEntries(cols.slice(1).map((c, i) => [c, cells[i + 1] === "" ? null : Number(cells[i + 1])]));
+  }
+}
+const CANAL_COLS = columns.filter((c) => /^(phonlathep|borommathat|mo|manorom|maharaj)_/.test(c));
+
 const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
 const files = fs.readdirSync(reportsDir).filter((f) => /^\d{4}-\d{2}-\d{2}\.js$/.test(f)).sort();
@@ -91,6 +106,7 @@ for (const f of files) {
     manorom_cms: num(canal.manorom_cms),
     maharaj_cms: num(canal.maharaj_cms),
   };
+  for (const col of CANAL_COLS) if (excel[row.date]?.[col] != null) row[col] = excel[row.date][col];
   for (const [col, v] of Object.entries(extra[row.date] ?? {})) row[col] ??= num(v);
   for (const col of Object.values(DAMS)) row[col] = null;
   for (const d of r.damReleases?.rows ?? []) {
@@ -98,6 +114,16 @@ for (const f of files) {
   }
   rows.push(row);
 }
+
+// วันที่มีแต่ใน Excel (ก่อนรายงานเริ่ม)
+const have = new Set(rows.map((r) => r.date));
+for (const [date, x] of Object.entries(excel)) {
+  if (have.has(date)) continue;
+  const row = { date, ...x };
+  if (x.head_level_m != null && x.tail_level_m != null) row.df_m = Math.round((x.head_level_m - x.tail_level_m) * 100) / 100;
+  rows.push(row);
+}
+rows.sort((a, b) => a.date.localeCompare(b.date));
 
 const csv = [columns.join(","), ...rows.map((row) => columns.map((c) => row[c] ?? "").join(","))].join("\n") + "\n";
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
