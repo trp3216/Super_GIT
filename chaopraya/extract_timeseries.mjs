@@ -8,6 +8,7 @@
 // อ่านด้วยมือไว้ใน canals_extra.csv และเติมเฉพาะช่องที่ว่าง
 // excel_daily.csv (จาก import_excel.py) เป็นแหล่งหลักของ C.2, ระดับเหนือ/ท้ายเขื่อน, ระบาย C.13, คลอง และระดับเหนือ ปตร.
 // (DF คำนวณใหม่จาก Excel); รายงานใช้เฉพาะช่องที่ Excel ไม่มี และค่าที่ Excel ไม่มีเลย (N.67, P.17, Ct.19, Sideflow ฯลฯ)
+// overrides.csv: ค่าที่ผู้ใช้ยืนยันเอง ใช้ทับทุกแหล่งเป็นขั้นสุดท้าย (DF คำนวณใหม่ถ้าแก้ระดับ)
 //
 // ถ้าไม่มี <reports_dir> (เช่น clone repo รายงานไม่ได้) จะใช้ c13_timeseries.csv เดิมเป็นฐานของค่าที่มาจากรายงาน
 // แล้วทับด้วย Excel — วันที่ใหม่กว่า CSV เดิมจะมีเฉพาะค่าจาก Excel จนกว่ารันกับ repo จริงอีกครั้ง
@@ -143,6 +144,20 @@ for (const [date, x] of Object.entries(excel)) {
   rows.push(withExcel({ date }));
 }
 rows.sort((a, b) => a.date.localeCompare(b.date));
+
+const overridePath = new URL("./overrides.csv", import.meta.url);
+if (fs.existsSync(overridePath)) {
+  const byDate = Object.fromEntries(rows.map((r) => [r.date, r]));
+  for (const l of fs.readFileSync(overridePath, "utf8").trim().split(/\r?\n/).slice(1)) {
+    const [d, col, v] = l.split(",");
+    const row = byDate[d];
+    if (!row || !columns.includes(col) || !Number.isFinite(Number(v))) continue;
+    row[col] = Number(v);
+    if ((col === "head_level_m" || col === "tail_level_m") && row.head_level_m != null && row.tail_level_m != null) {
+      row.df_m = Math.round((row.head_level_m - row.tail_level_m) * 100) / 100;
+    }
+  }
+}
 
 const csv = [columns.join(","), ...rows.map((row) => columns.map((c) => row[c] ?? "").join(","))].join("\n") + "\n";
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
