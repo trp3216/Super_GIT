@@ -9,6 +9,9 @@
 // excel_daily.csv (จาก import_excel.py) เป็นแหล่งหลักของ C.2, ระดับเหนือ/ท้ายเขื่อน, ระบาย C.13, คลอง และระดับเหนือ ปตร.
 // (DF คำนวณใหม่จาก Excel); รายงานใช้เฉพาะช่องที่ Excel ไม่มี และค่าที่ Excel ไม่มีเลย (N.67, P.17, Ct.19, Sideflow ฯลฯ)
 //
+// ถ้าไม่มี <reports_dir> (เช่น clone repo รายงานไม่ได้) จะใช้ c13_timeseries.csv เดิมเป็นฐานของค่าที่มาจากรายงาน
+// แล้วทับด้วย Excel — วันที่ใหม่กว่า CSV เดิมจะมีเฉพาะค่าจาก Excel จนกว่ารันกับ repo จริงอีกครั้ง
+//
 // ใช้: node chaopraya/extract_timeseries.mjs <reports_dir> [out.csv]
 import fs from "node:fs";
 import path from "node:path";
@@ -85,8 +88,19 @@ const withExcel = (row) => {
 
 const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
 
-const files = fs.readdirSync(reportsDir).filter((f) => /^\d{4}-\d{2}-\d{2}\.js$/.test(f)).sort();
 const rows = [];
+const fallback = !fs.existsSync(reportsDir);
+if (fallback) {
+  console.warn(`WARNING: ${reportsDir} not found — using previous ${outPath} for report-only columns`);
+  const [head, ...lines] = fs.readFileSync(outPath, "utf8").trim().split(/\r?\n/);
+  const cols = head.split(",");
+  for (const l of lines) {
+    const cells = l.split(",");
+    const row = Object.fromEntries(cols.map((c, i) => [c, i === 0 ? cells[0] : cells[i] === "" ? null : Number(cells[i])]));
+    rows.push(withExcel(row));
+  }
+}
+const files = fallback ? [] : fs.readdirSync(reportsDir).filter((f) => /^\d{4}-\d{2}-\d{2}\.js$/.test(f)).sort();
 for (const f of files) {
   const file = path.resolve(reportsDir, f);
   const r = (await import(pathToFileURL(file).href)).default;
