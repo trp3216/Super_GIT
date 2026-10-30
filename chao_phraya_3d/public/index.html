@@ -329,7 +329,7 @@ footer.src p{margin:0}
         <div class="gauge" id="gauge" aria-hidden="true">
           <div class="track"></div><div class="fill" id="gaugeFill"></div>
         </div>
-        <div class="gauge-legend">
+        <div class="gauge-legend" id="gaugeLegend">
           <span><i style="background:var(--crit)"></i>สูงสุดที่ยอมรับ +16.80</span>
           <span><i style="background:var(--warn)"></i>ควบคุม +16.00</span>
           <span><i style="background:var(--good)"></i>เป้าหมาย +15.80</span>
@@ -641,6 +641,8 @@ function renderPanel(){
   $('gaugeFill').style.width=gx(D.pool[d]);
   if(!$('gauge').querySelector('.mk')){
     $('gauge').insertAdjacentHTML('beforeend',`<span class="mk crit" style="left:${gx(POOL_MAX)}"></span><span class="mk warn" style="left:${gx(POOL_CTRL)}"></span><span class="mk good" style="left:${gx(POOL_TGT)}"></span>`);
+    $('gaugeLegend').innerHTML=[['crit','สูงสุดที่ยอมรับ',POOL_MAX],['warn','ควบคุม',POOL_CTRL],['good','เป้าหมาย',POOL_TGT]]
+      .map(([c,l,v])=>`<span><i style="background:var(--${c})"></i>${l} ${lvl(v)}</span>`).join('');
   }
 
   $('divTot').textContent=fmt(D.div[d])+' ลบ.ม./วินาที';

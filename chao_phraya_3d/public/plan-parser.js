@@ -197,18 +197,22 @@
     const axis = axisColumns(page, dates, -Infinity, right);
     if (!axis) return null;
     const arrive = [], net = [];
-    // chart area: below the "อัตราการไหล" heading when present; flow labels always carry a thousands comma
+    // chart area: below the "อัตราการไหล" heading when present. Flows of 1,000 or more carry a thousands
+    // comma; smaller ones are plain 2–3 digit labels (a bare 4-digit number is a year, not a flow).
     const head = page.lines.find((l) => /^อัตราการไหล/.test(l.norm));
     const top = head ? head.y : Infinity;
     const items = page.lines.filter((l) => l.y > axis.y && l.y < top).flatMap((l) => l.items).filter((i) => i.x < right);
-    const groups = byColumn(items.filter((i) => /^\d{1,3}(,\d{3})+$/.test(i.s)), axis.cols);
+    const groups = byColumn(items.filter((i) => /^\d{1,3}(,\d{3})+$|^\d{2,3}$/.test(i.s)), axis.cols);
     for (let k = 0; k < dates.length; k++) {
       const near = groups[k].map((i) => num(i.s));
       if (!near.length) return null;
+      // arrival is the largest label; net inflow is the one closest to arrival minus the planned diversion
+      // (some charts also label the diversion itself in each column)
       const a = Math.max(...near);
       arrive.push(a);
       const n = near.filter((v) => v !== a);
-      net.push(n.length ? Math.max(...n) : a - div[k]);
+      const want = a - div[k];
+      net.push(n.length ? n.reduce((b, v) => (Math.abs(v - want) < Math.abs(b - want) ? v : b)) : want);
     }
     return { arrive, net };
   }
