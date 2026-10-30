@@ -5,6 +5,7 @@
 //   GET    /api/plans          list archived plans, newest plan date first
 //   POST   /api/plans          upload (multipart: pdf, thumb, date, data) — needs Authorization: Bearer <UPLOAD_PASSWORD>
 //   DELETE /api/plans/:id      delete one plan — same password
+//   PUT    /api/plans/:id/data add or replace the plan numbers (JSON body) read again from the archived PDF — same password
 //   GET    /files/plans/<id>.(pdf|jpg|json)
 import PlanParser from "../public/plan-parser.js";
 
@@ -23,6 +24,11 @@ export default {
         if (req.method === "GET") return await listPlans(env);
         if (req.method === "POST") return await uploadPlan(req, env);
         return json({ error: "method not allowed" }, 405);
+      }
+      const data = path.match(/^\/api\/plans\/([^/]+)\/data$/);
+      if (data) {
+        if (req.method !== "PUT") return json({ error: "method not allowed" }, 405);
+        return await putPlanData(req, env, data[1]);
       }
       const del = path.match(/^\/api\/plans\/([^/]+)$/);
       if (del) {
@@ -122,13 +128,9 @@ async function uploadPlan(req, env) {
   let data = null;
   const rawData = form.get("data");
   if (typeof rawData === "string" && rawData) {
-    if (rawData.length > MAX_DATA) return json({ error: "ข้อมูลแผนใหญ่เกินไป" }, 413);
-    try {
-      data = JSON.parse(rawData);
-      PlanParser.validate(data);
-    } catch (err) {
-      return json({ error: "ข้อมูลตัวเลขของแผนไม่ถูกต้อง: " + (err.message || "รูปแบบผิด") }, 400);
-    }
+    const read = readPlanData(rawData);
+    if (read.error) return read.error;
+    data = read.data;
   }
 
   const id = `${date}-${Date.now().toString(36)}`;
@@ -142,6 +144,28 @@ async function uploadPlan(req, env) {
       data: data ? `/files/plans/${id}.json` : undefined,
     },
   }, 201);
+}
+
+function readPlanData(raw) {
+  if (raw.length > MAX_DATA) return { error: json({ error: "ข้อมูลแผนใหญ่เกินไป" }, 413) };
+  try {
+    const data = JSON.parse(raw);
+    PlanParser.validate(data);
+    return { data };
+  } catch (err) {
+    return { error: json({ error: "ข้อมูลตัวเลขของแผนไม่ถูกต้อง: " + (err.message || "รูปแบบผิด") }, 400) };
+  }
+}
+
+async function putPlanData(req, env, id) {
+  if (!ID_RE.test(id)) return json({ error: "not found" }, 404);
+  if (!(await authorized(req, env))) return authError(env);
+  if (Number(req.headers.get("content-length") || 0) > MAX_DATA) return json({ error: "ข้อมูลแผนใหญ่เกินไป" }, 413);
+  if (!(await env.BUCKET.head(`plans/${id}.pdf`))) return json({ error: "ไม่พบแผนนี้ในคลัง" }, 404);
+  const { data, error } = readPlanData(await req.text());
+  if (error) return error;
+  await env.BUCKET.put(`plans/${id}.json`, JSON.stringify(data), { httpMetadata: { contentType: "application/json; charset=utf-8" } });
+  return json({ plan: { id, data: `/files/plans/${id}.json` } });
 }
 
 async function deletePlan(req, env, id) {

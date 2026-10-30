@@ -229,6 +229,7 @@ footer.src p{margin:0}
 .empty{margin:0;color:var(--ink-2);font-size:.9rem}
 .btn,.btn-primary{font:600 13px/1.2 var(--f-body);border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);text-decoration:none;display:inline-flex;align-items:center;gap:6px}
 .btn-primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+[hidden]{display:none!important} /* class display rules (flex, grid) must not override the hidden attribute */
 .btn:hover{border-color:var(--accent)}
 .btn.danger{color:var(--crit)}
 .btn:focus-visible,.btn-primary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
@@ -260,6 +261,7 @@ footer.src p{margin:0}
 .up-parse.ok{border-color:var(--good)}
 .up-parse.bad{border-color:var(--warn)}
 .up-parse ul{margin:0;padding-left:1.1em;color:var(--warn)}
+.reparse{display:grid;gap:8px}
 .viewer-pages canvas{display:block;width:100%;height:auto;background:var(--paper);border-radius:4px;box-shadow:0 1px 4px rgb(0 0 0 / .2)}
 
 @media (prefers-reduced-motion: reduce){.gauge .fill,.gate .bar i{transition:none}}
@@ -383,6 +385,7 @@ footer.src p{margin:0}
         <h2 id="viewTitle">แผนการระบาย</h2>
         <div class="viewer-actions">
           <button type="button" class="btn-primary" id="viewShow" hidden>แสดงในภาพ 3 มิติ</button>
+          <button type="button" class="btn" id="viewReparse" hidden>อ่านตัวเลขจาก PDF อีกครั้ง</button>
           <a class="btn" id="viewOpen" href="#" target="_blank" rel="noopener">เปิดไฟล์ PDF</a>
           <button type="button" class="btn danger" id="viewDelete" hidden>ลบ</button>
           <button type="button" class="btn" id="viewClose">ปิด</button>
@@ -395,6 +398,15 @@ footer.src p{margin:0}
         <button type="button" class="btn" id="delCancel">ไม่ลบ</button>
         <span class="form-msg" id="delMsg" role="status"></span>
       </form>
+      <div class="reparse" id="reparse" hidden>
+        <div class="up-parse" id="rpBox" role="status"></div>
+        <form class="del-row" id="rpForm" hidden>
+          <label for="rpPass">รหัสผ่าน</label>
+          <input type="password" id="rpPass" autocomplete="current-password">
+          <button type="submit" class="btn-primary" id="rpSave">บันทึกตัวเลข ใช้กับภาพ 3 มิติ</button>
+          <span class="form-msg" id="rpMsg" role="status"></span>
+        </form>
+      </div>
     </div>
     <div class="viewer-pages" id="viewPages"></div>
   </dialog>
@@ -1198,7 +1210,7 @@ const thaiDate=iso=>{const [y,m,d]=iso.split('-').map(Number);return `${d} ${TH_
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtUp=iso=>{try{return new Date(iso).toLocaleString('th-TH',{day:'numeric',month:'short',year:'2-digit',hour:'2-digit',minute:'2-digit'});}catch(e){return '';}};
 const store={get(k){try{return sessionStorage.getItem(k)||'';}catch(e){return '';}},set(k,v){try{sessionStorage.setItem(k,v);}catch(e){}}};
-let plans=[], canUpload=false, apiOK=false, current=null, thumbBlob=null, parsed=null, viewToken=0, booted=false, shownId=null;
+let plans=[], canUpload=false, apiOK=false, current=null, thumbBlob=null, parsed=null, reparsed=null, viewToken=0, booted=false, shownId=null;
 
 let pdfjsP=null;
 function loadPdfjs(){
@@ -1280,6 +1292,7 @@ async function openPlan(id){
   $('viewOpen').href=p.pdf;
   $('viewShow').hidden=!p.data||p.id===shownId;
   $('viewDelete').hidden=!canUpload; $('delForm').hidden=true; $('delMsg').textContent='';
+  $('viewReparse').hidden=!!p.data||!canUpload; $('reparse').hidden=true; $('rpMsg').textContent=''; reparsed=null;
   const pages=$('viewPages'); pages.innerHTML='<p class="empty">กำลังเปิดเอกสาร…</p>';
   $('viewDlg').showModal();
   try{
@@ -1321,6 +1334,49 @@ $('delForm').addEventListener('submit',async e=>{
   finally{$('delOk').disabled=false;}
 });
 
+/* result of reading the plan numbers, shown when uploading and when reading an archived PDF again */
+function showParsed(box,res){
+  const P=res.data, L=P.dates.length-1, f0=v=>Number(v).toLocaleString('en-US'), lv=v=>(v>=0?'+':'−')+Math.abs(v).toFixed(2);
+  box.className='up-parse ok';
+  box.innerHTML=`<strong>อ่านตัวเลขได้ครบ ใช้กับภาพ 3 มิติได้</strong>
+    <span>${P.dates.length} วัน (${thaiDate(P.dates[0])} – ${thaiDate(P.dates[L])})</span>
+    <span>แผนระบาย ${f0(P.release[0])} → ${f0(P.release[L])} ลบ.ม./วิ · ระดับเหนือเขื่อน ${lv(P.pool[0])} → ${lv(P.pool[L])}</span>
+    <span>น้ำไหลมาถึง ${f0(P.arrive[0])} → ${f0(P.arrive[L])} · พระราม 8 ${lv(P.rama8[0])} → ${lv(P.rama8[L])}</span>
+    ${res.warnings.length?'<ul>'+res.warnings.map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul>':''}`;
+}
+function showParseError(box,err,after){
+  box.className='up-parse bad';
+  box.innerHTML=`<strong>อ่านตัวเลขในแผนไม่ได้</strong><span>${esc(err.message||'รูปแบบเอกสารไม่ตรงกับที่รองรับ')}</span><span>${esc(after)}</span>`;
+}
+
+/* read an archived PDF's numbers again (e.g. after the reader was improved) and save them with the plan */
+$('viewReparse').addEventListener('click',async()=>{
+  if(!current) return;
+  const p=current, tok=viewToken, box=$('rpBox');
+  reparsed=null; $('reparse').hidden=false; $('rpForm').hidden=true; $('rpMsg').textContent='';
+  box.className='up-parse'; box.textContent='กำลังอ่านตัวเลขในแผน…';
+  try{
+    const lib=await loadPdfjs();
+    const res=await window.PlanParser.parse(await lib.getDocument({url:p.pdf}).promise);
+    if(tok!==viewToken) return;
+    reparsed=res.data; showParsed(box,res);
+    $('rpForm').hidden=false; $('rpPass').value=store.get('upPass');
+  }catch(err){ if(tok===viewToken) showParseError(box,err,'ไฟล์ยังอยู่ในคลังตามเดิม'); }
+});
+$('rpForm').addEventListener('submit',async e=>{
+  e.preventDefault(); if(!current||!reparsed) return;
+  const pass=$('rpPass').value; if(!pass){$('rpMsg').textContent='กรุณาใส่รหัสผ่าน';return;}
+  $('rpSave').disabled=true; $('rpMsg').textContent='กำลังบันทึก…';
+  try{
+    const r=await fetch('/api/plans/'+encodeURIComponent(current.id)+'/data',{method:'PUT',
+      headers:{Authorization:'Bearer '+encodeURIComponent(pass),'content-type':'application/json'},body:JSON.stringify(reparsed)});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(j.error||'บันทึกไม่สำเร็จ ('+r.status+')');
+    store.set('upPass',pass); showPlan(current.id);
+  }catch(err){$('rpMsg').textContent=err.message;}
+  finally{$('rpSave').disabled=false;}
+});
+
 /* upload */
 function upMsg(t,err){const m=$('upMsg');m.textContent=t;m.classList.toggle('err',!!err);}
 function resetUpload(){ $('uploadForm').reset(); thumbBlob=null; parsed=null; $('upParse').hidden=true; $('upThumb').hidden=true; $('upThumbNote').textContent='เลือกไฟล์เพื่อดูภาพย่อหน้าแรก'; upMsg(''); }
@@ -1349,17 +1405,10 @@ $('upFile').addEventListener('change',async()=>{
     const box=$('upParse'); box.hidden=false; box.className='up-parse'; box.textContent='กำลังอ่านตัวเลขในแผน…';
     try{
       const res=await window.PlanParser.parse(doc); parsed=res.data;
-      const P=parsed, L=P.dates.length-1, f0=v=>Number(v).toLocaleString('en-US'), lv=v=>(v>=0?'+':'−')+Math.abs(v).toFixed(2);
-      box.classList.add('ok');
-      box.innerHTML=`<strong>อ่านตัวเลขได้ครบ ใช้กับภาพ 3 มิติได้</strong>
-        <span>${P.dates.length} วัน (${thaiDate(P.dates[0])} – ${thaiDate(P.dates[L])})</span>
-        <span>แผนระบาย ${f0(P.release[0])} → ${f0(P.release[L])} ลบ.ม./วิ · ระดับเหนือเขื่อน ${lv(P.pool[0])} → ${lv(P.pool[L])}</span>
-        <span>น้ำไหลมาถึง ${f0(P.arrive[0])} → ${f0(P.arrive[L])} · พระราม 8 ${lv(P.rama8[0])} → ${lv(P.rama8[L])}</span>
-        ${res.warnings.length?'<ul>'+res.warnings.map(w=>'<li>'+esc(w)+'</li>').join('')+'</ul>':''}`;
-      if(!d) $('upDate').value=P.dates[0];
+      showParsed(box,res);
+      if(!d) $('upDate').value=parsed.dates[0];
     }catch(err){
-      parsed=null; box.classList.add('bad');
-      box.innerHTML=`<strong>อ่านตัวเลขในแผนไม่ได้</strong><span>${esc(err.message||'รูปแบบเอกสารไม่ตรงกับที่รองรับ')}</span><span>ยังอัปโหลดเก็บในคลังได้ แต่ภาพ 3 มิติจะไม่เปลี่ยน</span>`;
+      parsed=null; showParseError(box,err,'ยังอัปโหลดเก็บในคลังได้ แต่ภาพ 3 มิติจะไม่เปลี่ยน');
     }
   }catch(e){ $('upThumbNote').textContent='อ่านไฟล์นี้ไม่ได้ ตรวจสอบว่าเป็นไฟล์ PDF'; }
 });
